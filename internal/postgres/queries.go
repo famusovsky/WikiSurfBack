@@ -6,7 +6,7 @@ const (
 	createUsers string = `CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
-    email TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL
 );`
 
@@ -78,7 +78,7 @@ const (
 )
 
 const (
-	getUser             = `SELECT * FROM users WHERE email = $1 AND password = $2;`
+	getUser             = `SELECT * FROM users WHERE email = $1;`
 	getUserHistory      = `SELECT * FROM sprints WHERE user_id = $1;`
 	getUserRouteHistory = `SELECT * FROM sprints WHERE user_id = $1 AND route_id = $2;`
 	getOpenTournaments  = `SELECT * FROM tournaments WHERE private = false AND end_time < $1;`

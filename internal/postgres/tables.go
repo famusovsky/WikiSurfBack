@@ -20,13 +20,13 @@ func overrideDB(db *sql.DB) error {
 // dropTables - функция, удаляющая таблицы WikiSurf в БД.
 func dropTables(db *sql.DB) error {
 	q := strings.Join([]string{
-		dropUsers,
-		dropRoutes,
-		dropSprints,
-		dropTours,
 		dropTURelations,
 		dropTCRelations,
 		dropTRRelations,
+		dropSprints,
+		dropRoutes,
+		dropTours,
+		dropUsers,
 	}, " ")
 
 	_, err := db.Exec(q)
@@ -41,9 +41,9 @@ func dropTables(db *sql.DB) error {
 func createTables(db *sql.DB) error {
 	q := strings.Join([]string{
 		createUsers,
+		createTours,
 		createRoutes,
 		createSprints,
-		createTours,
 		createTURelations,
 		createTCRelations,
 		createTRRelations,

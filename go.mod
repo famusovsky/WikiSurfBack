@@ -3,9 +3,12 @@ module github.com/famusovsky/WikiSurfBack
 go 1.22.0
 
 require (
+	github.com/badoux/checkmail v1.2.4
 	github.com/gofiber/fiber/v2 v2.52.2
+	github.com/gorilla/securecookie v1.1.2
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.10.9
+	golang.org/x/crypto v0.21.0
 )
 
 require (

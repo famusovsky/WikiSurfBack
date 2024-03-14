@@ -1,15 +1,12 @@
 package postgres
 
 import (
-	"encoding/json"
 	"errors"
 	"sort"
 
 	"github.com/famusovsky/WikiSurfBack/internal/models"
 	"github.com/jmoiron/sqlx"
 )
-
-// TODO wrap all errors
 
 type dbProcessor struct {
 	db *sqlx.DB
@@ -248,7 +245,7 @@ func (d *dbProcessor) GetOpenTournaments() ([]models.Tournament, error) {
 }
 
 // GetRouteRatings implements DbHandler.
-func (d *dbProcessor) GetRouteRatings(routeId int) ([]byte, error) {
+func (d *dbProcessor) GetRouteRatings(routeId int) ([]models.RouteRating, error) {
 	wrapErr := errors.New("error while getting route ratings from the database")
 	var ratings []models.RouteRating
 	err := d.db.Select(&ratings, getRouteBest, routeId)
@@ -256,16 +253,11 @@ func (d *dbProcessor) GetRouteRatings(routeId int) ([]byte, error) {
 		return nil, errors.Join(wrapErr, err)
 	}
 
-	res, err := json.Marshal(ratings)
-	if err != nil {
-		return nil, errors.Join(wrapErr, errMarshalling, err)
-	}
-
-	return res, nil
+	return ratings, nil
 }
 
 // GetTournamentRatings implements DbHandler.
-func (d *dbProcessor) GetTournamentRatings(tour int) ([]byte, error) {
+func (d *dbProcessor) GetTournamentRatings(tour int) ([]models.TourRating, error) {
 	wrapErr := errors.New("error while getting tournament ratings from the database")
 
 	var routes []int
@@ -314,18 +306,18 @@ func (d *dbProcessor) GetTournamentRatings(tour int) ([]byte, error) {
 		return ratings[i].Points < ratings[j].Points
 	})
 
-	res, err := json.Marshal(ratings)
-	if err != nil {
-		return nil, errors.Join(wrapErr, errMarshalling, err)
-	}
+	// res, err := json.Marshal(ratings)
+	// if err != nil {
+	// 	return nil, errors.Join(wrapErr, errMarshalling, err)
+	// }
 
-	return res, nil
+	return ratings, nil
 }
 
 // GetUser implements DbHandler.
-func (d *dbProcessor) GetUser(email string, pswd string) (models.User, error) {
+func (d *dbProcessor) GetUser(email string) (models.User, error) {
 	var user models.User
-	err := d.db.Get(&user, getUser, email, pswd)
+	err := d.db.Get(&user, getUser, email)
 	if err != nil {
 		return models.User{}, errors.Join(errors.New("error while getting user from the database"), err)
 	}
