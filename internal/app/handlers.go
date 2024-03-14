@@ -12,6 +12,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// signUp - функция, регистрирующая нового пользователя.
 func (app *App) signUp(c *fiber.Ctx) error {
 	c.Accepts("json")
 	var user models.User
@@ -49,6 +50,7 @@ func (app *App) signUp(c *fiber.Ctx) error {
 	return c.JSON("OK")
 }
 
+// signIn - функция, авторизирующая пользователя.
 func (app *App) signIn(c *fiber.Ctx) error {
 	c.Accepts("json")
 	var creds struct {
@@ -81,6 +83,7 @@ func (app *App) signIn(c *fiber.Ctx) error {
 	return c.JSON("OK")
 }
 
+// getRouteRating - функция, возвращяющая рейтинг по маршруту.
 func (app *App) getRouteRating(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting route ratings in api")
 	id, err := strconv.Atoi(c.Params("route"))
@@ -99,6 +102,7 @@ func (app *App) getRouteRating(c *fiber.Ctx) error {
 	return c.JSON(ratings)
 }
 
+// getTourRating - функция, возвращяющая рейтинг по соревнованию.
 func (app *App) getTourRating(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting tournament ratings in api")
 	id, err := strconv.Atoi(c.Params("tour"))
@@ -117,6 +121,7 @@ func (app *App) getTourRating(c *fiber.Ctx) error {
 	return c.JSON(ratings)
 }
 
+// getUserHistory - функция, возвращяющая получение историю спринтов пользователя.
 func (app *App) getUserHistory(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting user history in api")
 
@@ -135,6 +140,7 @@ func (app *App) getUserHistory(c *fiber.Ctx) error {
 	return c.JSON(history)
 }
 
+// getUserRouteHistory - функция, возвращяющая получение историю спринтов пользователя по маршруту.
 func (app *App) getUserRouteHistory(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting user route history in api")
 	routeId, err := strconv.Atoi(c.Params("route"))
@@ -158,6 +164,7 @@ func (app *App) getUserRouteHistory(c *fiber.Ctx) error {
 	return c.JSON(history)
 }
 
+// getOpenTournaments - функция, возвращяющая список соревнований, открытых для вступления.
 func (app *App) getOpenTournaments(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting open tounaments in api")
 
@@ -171,6 +178,7 @@ func (app *App) getOpenTournaments(c *fiber.Ctx) error {
 	return c.JSON(tournaments)
 }
 
+// getUserTournaments - функция, возвращяющая список соревнований, в которые вступил пользователь.
 func (app *App) getUserTournaments(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting user tounaments in api")
 
@@ -189,6 +197,7 @@ func (app *App) getUserTournaments(c *fiber.Ctx) error {
 	return c.JSON(tournaments)
 }
 
+// getCreatorTournaments - функция, возвращяющая список соревнований, в которых ползователь является создателем.
 func (app *App) getCreatorTournaments(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting creator tounaments in api")
 

@@ -9,7 +9,6 @@ type Tournament struct {
 	EndTime   time.Time `json:"end_time" db:"end_time"`     // EndTime - время конца соревнования.
 	Pswd      string    `json:"pswd" db:"pswd"`             // Pswd - Код-пароль соревнования.
 	Private   bool      `json:"private" db:"private"`       // Private - флаг, указывающий на закрытость соревнования.
-	// Ratings string // XXX необходимы ли?
 }
 
 // TURelation - структура, представляющая отношение между соревнованием и пользователем.

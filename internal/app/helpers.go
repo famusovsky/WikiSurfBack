@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// getUser - функция, возвращающая пользователя по fiber.Ctx.
 func (app *App) getUser(c *fiber.Ctx, wrapErr error) (models.User, bool) {
 	email, err := app.ch.Read(c)
 	if err != nil {

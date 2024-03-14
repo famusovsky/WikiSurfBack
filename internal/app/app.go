@@ -49,7 +49,7 @@ func CreateApp(db postgres.DbHandler, infoLog, errLog *log.Logger) *App {
 	api.Get("/history", result.getUserHistory)
 	api.Get("/history/:route", result.getUserRouteHistory)
 	api.Get("/tours", result.getOpenTournaments)
-	api.Get("/user-tours", result.getOpenTournaments)
+	api.Get("/user-tours", result.getUserTournaments)
 	api.Get("/creator-tours", result.getCreatorTournaments)
 	// api.Get("/tmp", result.tmp)
 
