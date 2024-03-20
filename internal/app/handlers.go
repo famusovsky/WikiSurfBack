@@ -2,133 +2,51 @@ package app
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
+	"html/template"
+	"log"
 	"strconv"
+	"sync"
 
-	"github.com/badoux/checkmail"
 	"github.com/famusovsky/WikiSurfBack/internal/models"
 	"github.com/gofiber/fiber/v2"
-	"golang.org/x/crypto/bcrypt"
 )
 
-// signUp - функция, регистрирующая нового пользователя.
-func (app *App) signUp(c *fiber.Ctx) error {
-	c.Accepts("json")
-	var user models.User
-	wrapErr := errors.New("error while signing up user in api")
+// TODO change log fatal to return error html
 
-	decoder := json.NewDecoder(bytes.NewReader(c.Body()))
-	if err := decoder.Decode(&user); err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.NewError(fiber.StatusBadRequest, `request's body is wrong`)
-	}
-
-	if err := checkmail.ValidateFormat(user.Email); err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.NewError(fiber.StatusBadRequest, `email is wrong`)
-	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), 8)
-	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.NewError(fiber.StatusInternalServerError, "error while hashing the password")
-	}
-
-	user.Password = string(hashedPassword)
-
-	_, err = app.db.AddUser(user)
-	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.NewError(fiber.StatusInternalServerError, "error while saving user info")
-	}
-
-	app.ch.Set(c, user.Email)
-
-	app.infoLog.Printf("user %s signed up\n", user.Name)
-
-	return c.JSON("OK")
-}
-
-// signIn - функция, авторизирующая пользователя.
-func (app *App) signIn(c *fiber.Ctx) error {
-	c.Accepts("json")
-	var creds struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-	wrapErr := errors.New("error while signing in user in api")
-
-	decoder := json.NewDecoder(bytes.NewReader(c.Body()))
-	if err := decoder.Decode(&creds); err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.NewError(fiber.StatusBadRequest, `request's body is wrong`)
-	}
-
-	user, err := app.db.GetUser(creds.Email)
-	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.NewError(fiber.StatusInternalServerError, "error while checking user info")
-	}
-
-	if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(creds.Password)); err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.NewError(fiber.StatusUnauthorized, "wrong password")
-	}
-
-	app.ch.Set(c, user.Email)
-
-	app.infoLog.Printf("user %s signed in\n", user.Name)
-
-	return c.JSON("OK")
-}
-
-// getRouteRating - функция, возвращяющая рейтинг по маршруту.
-func (app *App) getRouteRating(c *fiber.Ctx) error {
-	wrapErr := errors.New("error while getting route ratings in api")
-	id, err := strconv.Atoi(c.Params("route"))
-	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.ErrBadRequest
-	}
-
-	ratings, err := app.db.GetRouteRatings(id)
-	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.ErrInternalServerError
-	}
-
-	app.infoLog.Printf("ratings for route %d is successfully getted\n", id)
-	return c.JSON(ratings)
-}
-
-// getTourRating - функция, возвращяющая рейтинг по соревнованию.
-func (app *App) getTourRating(c *fiber.Ctx) error {
-	wrapErr := errors.New("error while getting tournament ratings in api")
-	id, err := strconv.Atoi(c.Params("tour"))
-	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.ErrBadRequest
-	}
-
-	ratings, err := app.db.GetTournamentRatings(id)
-	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.NewError(fiber.StatusInternalServerError)
-	}
-
-	app.infoLog.Printf("ratings for tour %d is successfully getted\n", id)
-	return c.JSON(ratings)
-}
-
-// getUserHistory - функция, возвращяющая получение историю спринтов пользователя.
-func (app *App) getUserHistory(c *fiber.Ctx) error {
-	wrapErr := errors.New("error while getting user history in api")
-
-	user, ok := app.getUser(c, wrapErr)
+func (app *App) checkReg(c *fiber.Ctx) error {
+	_, ok := app.getUser(c, errors.New("error while checking authorization"))
 	if !ok {
-		return c.Redirect("/signup", fiber.StatusUnauthorized)
+		return c.Redirect("/auth")
 	}
+
+	return c.Next()
+}
+
+func (app *App) renderAuth(c *fiber.Ctx) error {
+	if c.Query("signin") != "" {
+		return app.signIn(c)
+	}
+	return c.Render("auth/auth", fiber.Map{}, "layouts/mini")
+}
+
+func (app *App) renderSignin(c *fiber.Ctx) error {
+	return c.Render("auth/signin", fiber.Map{})
+}
+
+func (app *App) renderSignup(c *fiber.Ctx) error {
+	return c.Render("auth/signup", fiber.Map{})
+}
+
+func (app *App) renderMain(c *fiber.Ctx) error {
+	return c.Render("main", fiber.Map{
+		"ratingType": "/rating",
+	}, "layouts/base")
+}
+
+func (app *App) renderHistory(c *fiber.Ctx) error {
+	wrapErr := errors.New("error while getting users history")
+	user, _ := app.getUser(c, wrapErr)
 
 	history, err := app.db.GetUserHistory(user.Id)
 	if err != nil {
@@ -136,82 +54,260 @@ func (app *App) getUserHistory(c *fiber.Ctx) error {
 		return fiber.ErrInternalServerError
 	}
 
-	app.infoLog.Printf("history for user %s is successfully getted\n", user.Name)
-	return c.JSON(history)
-}
-
-// getUserRouteHistory - функция, возвращяющая получение историю спринтов пользователя по маршруту.
-func (app *App) getUserRouteHistory(c *fiber.Ctx) error {
-	wrapErr := errors.New("error while getting user route history in api")
-	routeId, err := strconv.Atoi(c.Params("route"))
-	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.ErrBadRequest
+	res := make([]sprintData, len(history))
+	getData := func(res []sprintData, i int) {
+		res[i] = app.getFullSprintDate(history[i])
 	}
 
-	user, ok := app.getUser(c, wrapErr)
+	wg := sync.WaitGroup{}
+	wg.Add(len(res))
+	for i := range res {
+		go getData(res, i)
+		wg.Done()
+	}
+	wg.Wait()
+
+	q := `{{range .}}<tr hx-get={{printf "/sprint/%s" .id }} hx-target="body">
+	<td>{{.Start}}</td>
+	<td>{{.Finish}}</td>
+	<td>{{.StartTime}}</td>
+	<td>{{.LengthTime}}</td>
+	<td>{{.Steps}}</td>
+	</tr>{{end}}`
+	t := template.Must(template.New("").Parse(q))
+
+	var body bytes.Buffer
+	if err := t.Execute(&body, res); err != nil {
+		log.Fatal(err)
+	}
+
+	return c.Render("history", fiber.Map{
+		"tbody": body.String(),
+	}, "layouts/base")
+}
+
+func (app *App) renderSettings(c *fiber.Ctx) error {
+	usr, _ := app.getUser(c, errors.New(""))
+	return c.Render("settings", fiber.Map{
+		"email": usr.Email,
+		"name":  usr.Name,
+	}, "layouts/base")
+}
+
+func (app *App) renderSprint(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return fiber.ErrNotFound
+	}
+	sprint, err := app.db.GetSprint(id)
+	if err != nil {
+		return fiber.ErrNotFound
+	}
+
+	var infoTbody, stepsTbody bytes.Buffer
+	wg := sync.WaitGroup{}
+	wg.Add(3)
+
+	go func(b *bytes.Buffer, wg *sync.WaitGroup) {
+		q := `{{range .}}<tr>
+	<td>{{.Start}}</td>
+	<td>{{.Finish}}</td>
+	<td>{{.StartTime}}</td>
+	<td>{{.LengthTime}}</td>
+	<td>{{.Steps}}</td>
+	</tr>{{end}}`
+
+		data := app.getFullSprintDate(sprint)
+		t := template.Must(template.New("").Parse(q))
+
+		if err := t.Execute(b, data); err != nil {
+			log.Fatal(err)
+		}
+		wg.Done()
+	}(&infoTbody, &wg)
+
+	go func(b *bytes.Buffer, wg *sync.WaitGroup) {
+		q := `{{range .}}<tr>
+	<td>{{.}}</td>
+	</tr>{{end}}`
+		t := template.Must(template.New("").Parse(q))
+
+		if err := t.Execute(b, sprint.Path); err != nil {
+			log.Fatal(err)
+		}
+		wg.Done()
+	}(&stepsTbody, &wg)
+
+	var place int
+	go func(place *int, wg *sync.WaitGroup) {
+		rating, err := app.db.GetRouteRatings(sprint.RouteId)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for i := range rating {
+			if rating[i].UserId == sprint.UserId {
+				*place = i + 1
+				break
+			}
+		}
+	}(&place, &wg)
+
+	return c.Render("sprint", fiber.Map{
+		"ind":        sprint.Id,
+		"infoTbody":  infoTbody.String(),
+		"place":      place,
+		"routeId":    sprint.RouteId,
+		"stepsTbody": stepsTbody.String(),
+	}, "layouts/base")
+}
+
+func (app *App) renderRoute(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return fiber.ErrNotFound
+	}
+
+	route, err := app.db.GetRoute(id)
+	if err != nil {
+		return fiber.ErrNotFound
+	}
+
+	return c.Render("route", fiber.Map{
+		"ind":        id,
+		"start":      route.Start,
+		"finish":     route.Finish,
+		"link":       route.Start, // FIXME
+		"ratingType": "/service/rating/route/" + c.Params("id"),
+	}, "layouts/base")
+}
+
+func (app *App) renderTournaments(c *fiber.Ctx) error {
+	return c.Render("tournaments", fiber.Map{}, "layouts/base")
+}
+
+func (app *App) renderOpenedTournaments(c *fiber.Ctx) error {
+	tours, err := app.db.GetOpenTournaments()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res := getToursTable(tours)
+	return c.Render("partials/tourList", fiber.Map{
+		"name":  "Opened tours",
+		"tbody": res,
+	})
+}
+
+func (app *App) renderUserTournaments(c *fiber.Ctx) error {
+	user, ok := app.getUser(c, errors.New("error while getting user"))
 	if !ok {
-		return c.Redirect("/signup", fiber.StatusUnauthorized)
+		return c.Redirect("/auth")
 	}
-
-	history, err := app.db.GetUserRouteHistory(user.Id, routeId)
+	tours, err := app.db.GetUserTournaments(user.Id)
 	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.ErrInternalServerError
+		log.Fatal(err)
 	}
 
-	app.infoLog.Printf("history for route %d user %s is successfully getted\n", routeId, user.Name)
-	return c.JSON(history)
+	res := getToursTable(tours)
+	return c.Render("partials/tourList", fiber.Map{
+		"name":  "Tours in which I participate",
+		"tbody": res,
+	})
 }
-
-// getOpenTournaments - функция, возвращяющая список соревнований, открытых для вступления.
-func (app *App) getOpenTournaments(c *fiber.Ctx) error {
-	wrapErr := errors.New("error while getting open tounaments in api")
-
-	tournaments, err := app.db.GetOpenTournaments()
-	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.ErrInternalServerError
-	}
-
-	app.infoLog.Printf("open tournaments are successfully getted\n")
-	return c.JSON(tournaments)
-}
-
-// getUserTournaments - функция, возвращяющая список соревнований, в которые вступил пользователь.
-func (app *App) getUserTournaments(c *fiber.Ctx) error {
-	wrapErr := errors.New("error while getting user tounaments in api")
-
-	user, ok := app.getUser(c, wrapErr)
+func (app *App) renderCreatorTournaments(c *fiber.Ctx) error {
+	user, ok := app.getUser(c, errors.New("error while getting user"))
 	if !ok {
-		return c.Redirect("/signup", fiber.StatusUnauthorized)
+		return c.Redirect("/auth")
 	}
-
-	tournaments, err := app.db.GetUserTournaments(user.Id)
+	tours, err := app.db.GetCreatorTournaments(user.Id)
 	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.ErrInternalServerError
+		log.Fatal(err)
 	}
 
-	app.infoLog.Printf("tournaments of user %s are successfully getted\n", user.Name)
-	return c.JSON(tournaments)
+	res := getToursTable(tours)
+	return c.Render("partials/tourList", fiber.Map{
+		"name":  "Tours I have created",
+		"tbody": res,
+	})
 }
 
-// getCreatorTournaments - функция, возвращяющая список соревнований, в которых ползователь является создателем.
-func (app *App) getCreatorTournaments(c *fiber.Ctx) error {
-	wrapErr := errors.New("error while getting creator tounaments in api")
-
-	user, ok := app.getUser(c, wrapErr)
+func (app *App) renderTournament(c *fiber.Ctx) error {
+	user, ok := app.getUser(c, errors.New("error while getting user"))
 	if !ok {
-		return c.Redirect("/signup", fiber.StatusUnauthorized)
+		return c.Redirect("/auth")
 	}
 
-	tournaments, err := app.db.GetCreatorTournaments(user.Id)
+	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.ErrInternalServerError
+		return fiber.ErrNotFound
 	}
 
-	app.infoLog.Printf("tournaments of creator %s are successfully getted\n", user.Name)
-	return c.JSON(tournaments)
+	var (
+		body         bytes.Buffer
+		tour         models.Tournament
+		participates bool
+		isCreator    bool
+	)
+
+	wg := sync.WaitGroup{}
+	wg.Add(4)
+
+	go func(t *models.Tournament, wg *sync.WaitGroup) {
+		tmp, err := app.db.GetTournament(id)
+		if err != nil {
+			log.Fatal(err)
+		}
+		*t = tmp
+		wg.Done()
+	}(&tour, &wg)
+
+	go func(b *bytes.Buffer, wg *sync.WaitGroup) {
+		routes, err := app.db.GetTournamentRoutes(id)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		q := `{{range .}}<tr hx-get={{printf "/route/%s" .Id }} hx-target="body">
+	<td>{{.Id}}</td>
+	<td>{{.Start}}</td>
+	<td>{{.Finish}}</td>
+	</tr>{{end}}`
+
+		t := template.Must(template.New("").Parse(q))
+
+		if err := t.Execute(b, routes); err != nil {
+			log.Fatal(err)
+		}
+		wg.Done()
+	}(&body, &wg)
+
+	go func(b *bool, wg *sync.WaitGroup) {
+		participates, err := app.db.CheckTournamentParticipator(id, user.Id)
+		if err != nil {
+			log.Fatal(err)
+		}
+		*b = participates
+		wg.Done()
+	}(&participates, &wg)
+
+	go func(b *bool, wg *sync.WaitGroup) {
+		isCreator, err := app.db.CheckTournamentCreator(id, user.Id)
+		if err != nil {
+			log.Fatal(err)
+		}
+		*b = isCreator
+		wg.Done()
+	}(&isCreator, &wg)
+
+	wg.Wait()
+
+	return c.Render("tournament", fiber.Map{
+		"password":     tour.Pswd,
+		"routesTbody":  body.String(),
+		"participates": participates,
+		"isCreator":    isCreator,
+		"ratingType":   "/service/rating/tour/" + c.Params("id"),
+		"start":        tour.StartTime.Format("2006 Jan 2 15:04"),
+		"end":          tour.EndTime.Format("2006 Jan 2 15:04"),
+	}, "layouts/base")
 }

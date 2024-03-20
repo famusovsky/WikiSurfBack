@@ -19,7 +19,11 @@ type DbHandler interface {
 	RemoveUserFromTour(tu models.TURelation, userId int) error        // AddUserToTour - удаление участника из соревнования.
 	AddCreatorToTour(tu models.TURelation, userId int) error          // AddCreatorToTour - добавление создателя в соревнование.
 	RemoveCreatorFromTour(tu models.TURelation, userId int) error     // RemoveCreatorFromTour - удаление создателя из соревнования.
-	GetUser(email string) (models.User, error)                        // GetUser - получение Id пользователя по email-у и паролю.
+	GetUser(email string) (models.User, error)                        // GetUser - получение пользователя по email-у
+	GetRoute(id int) (models.Route, error)                            // GetRoute - получение маршрута по id.
+	GetSprint(id int) (models.Sprint, error)                          // GetSprint - получение спринта по id.
+	GetTournament(id int) (models.Tournament, error)                  // GetTournament - получение соревнования по id.
+	GetTournamentRoutes(id int) ([]models.Route, error)               // GetTournamentRoutes - получение маршрутов соревнования.
 	GetUserHistory(id int) ([]models.Sprint, error)                   // GetUserHistory - получение истории спринтов пользователя.
 	GetUserRouteHistory(userId, routeId int) ([]models.Sprint, error) // GetUserRouteHistory - получение истории спринтов пользователя по маршруту.
 	GetRouteRatings(routeId int) ([]models.RouteRating, error)        // GetRouteRatings - получение рейтинга по маршруту в формате JSON.
@@ -29,6 +33,7 @@ type DbHandler interface {
 	GetTournamentRatings(tour int) ([]models.TourRating, error)       // GetTournamentRatings - получение рейтинга по соревнованию в формате JSON.
 	CheckTournamentPassword(tourId int, pswd string) (bool, error)    // CheckTournamentPassword - проверка на соответствие кода-пароля соревнования.
 	CheckTournamentCreator(tourId, userId int) (bool, error)          // CheckTournamentCreator - проверка на соответствие Id пользователя с Id создателей соревнования.
+	CheckTournamentParticipator(tourId, userId int) (bool, error)     // CheckTournamentParticipator - проверка на соответствие Id пользователя с Id участников соревнования.
 	UpdateTournament(tour models.Tournament, user int) error          // UpdateTournament - обновление основных данных о соревновании.
 	UpdateUser(user models.User) error                                // UpdateUser -  - обновление основных данных о пользователе.
 }

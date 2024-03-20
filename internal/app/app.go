@@ -1,6 +1,7 @@
 package app
 
 import (
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/famusovsky/WikiSurfBack/internal/postgres"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/template/html/v2"
 )
 
 // App - структура, описывающая приложение.
@@ -25,11 +27,19 @@ type App struct {
 //
 // Возвращает: приложение.
 func CreateApp(db postgres.DbHandler, infoLog, errLog *log.Logger) *App {
+	engine := html.New("./views", ".html")
+	engine.AddFunc(
+		"unescape", func(s string) template.HTML {
+			return template.HTML(s)
+		},
+	)
+
 	application := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			errLog.Printf("%v", err)
-			return c.Status(http.StatusInternalServerError).JSON(err) // TODO переделать
+			return c.Status(http.StatusInternalServerError).JSON(err)
 		},
+		Views: engine,
 	})
 
 	result := &App{
@@ -40,18 +50,7 @@ func CreateApp(db postgres.DbHandler, infoLog, errLog *log.Logger) *App {
 		errLog:  errLog,
 	}
 
-	api := result.web.Group("/api")
-
-	api.Post("/signup", result.signUp)
-	api.Get("/signin", result.signIn)
-	api.Get("/route-rating/:route", result.getRouteRating)
-	api.Get("/tour-rating/:tour", result.getTourRating)
-	api.Get("/history", result.getUserHistory)
-	api.Get("/history/:route", result.getUserRouteHistory)
-	api.Get("/tours", result.getOpenTournaments)
-	api.Get("/user-tours", result.getUserTournaments)
-	api.Get("/creator-tours", result.getCreatorTournaments)
-	// api.Get("/tmp", result.tmp)
+	setRoutes(result)
 
 	return result
 }

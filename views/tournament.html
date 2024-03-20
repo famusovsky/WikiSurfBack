@@ -1,0 +1,33 @@
+<script src="./static/htmx.min.js"></script>
+
+<body>
+    <h2>Tournament {{.ind}}</h2>
+
+    <h4>
+        <div>Password: {{.password}}</div>
+        <div>Start time: {{.start}}</div>
+        <div>End time: {{.end}}</div>
+        {{if .participates}}
+            <button hx-get={{printf "/tour-participate/%s" .ind }} hx-target="this" hx-swap="outerHTML">Participate in the tour #{{.ind}}</button>
+        {{end}}
+        {{if .isCreator}}
+            <button hx-get={{printf "/edit-tour/%s" .ind }} hx-target="body">Edit the tour #{{.ind}}</button>
+        {{end}}
+    </h4>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Route</th>
+                <th>Start article</th>
+                <th>Finish article</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ unescape .routesTbody}}
+        </tbody>
+    </table>
+
+    {{template "partials/rating" .}}
+</body>
+    

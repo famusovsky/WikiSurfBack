@@ -3,6 +3,7 @@ package postgres
 import (
 	"errors"
 	"sort"
+	"time"
 
 	"github.com/famusovsky/WikiSurfBack/internal/models"
 	"github.com/jmoiron/sqlx"
@@ -13,10 +14,9 @@ type dbProcessor struct {
 }
 
 var (
-	errBeginTx     = errors.New("error while starting transaction")
-	errCommitTx    = errors.New("error while committing transaction")
-	errNotCreator  = errors.New("user is not the tournament's creator")
-	errMarshalling = errors.New("error while marshalling route ratings to json")
+	errBeginTx    = errors.New("error while starting transaction")
+	errCommitTx   = errors.New("error while committing transaction")
+	errNotCreator = errors.New("user is not the tournament's creator")
 )
 
 // AddUser implements DbHandler.
@@ -30,13 +30,12 @@ func (d *dbProcessor) AddUser(user models.User) (int, error) {
 	defer tx.Rollback()
 
 	var id int
-	err = tx.QueryRow(addUser, user.Name, user.Email, user.Password).Scan(&id)
-	if err != nil {
+
+	if err = tx.QueryRow(addUser, user.Name, user.Email, user.Password).Scan(&id); err != nil {
 		return 0, errors.Join(wrapErr, err)
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err = tx.Commit(); err != nil {
 		return 0, errors.Join(wrapErr, errCommitTx, err)
 	}
 
@@ -54,13 +53,12 @@ func (d *dbProcessor) AddRoute(route models.Route) (int, error) {
 	defer tx.Rollback()
 
 	var id int
-	err = tx.QueryRow(addRoute, route.Start, route.Finish, route.CreatorId).Scan(&id)
-	if err != nil {
+
+	if err = tx.QueryRow(addRoute, route.Start, route.Finish, route.CreatorId).Scan(&id); err != nil {
 		return 0, errors.Join(wrapErr, err)
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err = tx.Commit(); err != nil {
 		return 0, errors.Join(wrapErr, errCommitTx, err)
 	}
 
@@ -77,14 +75,13 @@ func (d *dbProcessor) AddSprint(sprint models.Sprint) (int, error) {
 	defer tx.Rollback()
 
 	var id int
-	err = tx.QueryRow(addSprint, sprint.StartTime, sprint.LengthTime, sprint.Success,
-		sprint.RouteId, sprint.UserId, sprint.TournamentId, sprint.Path).Scan(&id)
-	if err != nil {
+
+	if err = tx.QueryRow(addSprint, sprint.StartTime, sprint.LengthTime, sprint.Success,
+		sprint.RouteId, sprint.UserId, sprint.TournamentId, sprint.Path).Scan(&id); err != nil {
 		return 0, errors.Join(wrapErr, err)
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err = tx.Commit(); err != nil {
 		return 0, errors.Join(wrapErr, errCommitTx, err)
 	}
 
@@ -102,13 +99,12 @@ func (d *dbProcessor) AddTournament(tour models.Tournament) (int, error) {
 	defer tx.Rollback()
 
 	var id int
-	err = tx.QueryRow(addTour, tour.StartTime, tour.EndTime, tour.Pswd, tour.Private).Scan(&id)
-	if err != nil {
+
+	if err := tx.QueryRow(addTour, tour.StartTime, tour.EndTime, tour.Pswd, tour.Private).Scan(&id); err != nil {
 		return 0, errors.Join(wrapErr, err)
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return 0, errors.Join(wrapErr, errCommitTx, err)
 	}
 
@@ -133,13 +129,11 @@ func (d *dbProcessor) AddRouteToTour(tr models.TRRelation, userId int) error {
 	}
 	defer tx.Rollback()
 
-	_, err = tx.Exec(addRouteToTour, tr.TournamentId, tr.RouteId)
-	if err != nil {
+	if _, err := tx.Exec(addRouteToTour, tr.TournamentId, tr.RouteId); err != nil {
 		return errors.Join(wrapErr, err)
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Join(wrapErr, errCommitTx, err)
 	}
 
@@ -164,13 +158,11 @@ func (d *dbProcessor) AddCreatorToTour(tu models.TURelation, userId int) error {
 	}
 	defer tx.Rollback()
 
-	_, err = tx.Exec(addCreatorToTour, tu.TournamentId, tu.UserId)
-	if err != nil {
+	if _, err := tx.Exec(addCreatorToTour, tu.TournamentId, tu.UserId); err != nil {
 		return errors.Join(wrapErr, err)
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Join(wrapErr, errCommitTx, err)
 	}
 
@@ -187,13 +179,11 @@ func (d *dbProcessor) AddUserToTour(tu models.TURelation, userId int) error {
 	}
 	defer tx.Rollback()
 
-	_, err = tx.Exec(addUserToTour, tu.TournamentId, tu.UserId)
-	if err != nil {
+	if _, err := tx.Exec(addUserToTour, tu.TournamentId, tu.UserId); err != nil {
 		return errors.Join(wrapErr, err)
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Join(wrapErr, errCommitTx, err)
 	}
 
@@ -203,8 +193,18 @@ func (d *dbProcessor) AddUserToTour(tu models.TURelation, userId int) error {
 // CheckTournamentCreator implements DbHandler.
 func (d *dbProcessor) CheckTournamentCreator(tourId int, userId int) (bool, error) {
 	var cnt int
-	err := d.db.Get(&cnt, checkTournamentCreator, tourId, userId)
-	if err != nil {
+
+	if err := d.db.Get(&cnt, checkTournamentCreator, tourId, userId); err != nil {
+		return false, errors.Join(errors.New("error while checking tournament's creator in the database"), err)
+	}
+
+	return cnt > 0, nil
+}
+
+func (d *dbProcessor) CheckTournamentParticipator(tourId int, userId int) (bool, error) {
+	var cnt int
+
+	if err := d.db.Get(&cnt, checkTournamentParticipator, tourId, userId); err != nil {
 		return false, errors.Join(errors.New("error while checking tournament's creator in the database"), err)
 	}
 
@@ -214,8 +214,8 @@ func (d *dbProcessor) CheckTournamentCreator(tourId int, userId int) (bool, erro
 // CheckTournamentPassword implements DbHandler.
 func (d *dbProcessor) CheckTournamentPassword(tourId int, pswd string) (bool, error) {
 	var cnt int
-	err := d.db.Get(&cnt, checkTournamentPassword, tourId, pswd)
-	if err != nil {
+
+	if err := d.db.Get(&cnt, checkTournamentPassword, tourId, pswd); err != nil {
 		return false, errors.Join(errors.New("error while checking tournament's password in the database"), err)
 	}
 
@@ -225,8 +225,8 @@ func (d *dbProcessor) CheckTournamentPassword(tourId int, pswd string) (bool, er
 // GetCreatorTournaments implements DbHandler.
 func (d *dbProcessor) GetCreatorTournaments(user int) ([]models.Tournament, error) {
 	var res []models.Tournament
-	err := d.db.Select(&res, getCreatorTournaments, user)
-	if err != nil {
+
+	if err := d.db.Select(&res, getCreatorTournaments, user); err != nil {
 		return nil, errors.Join(errors.New("error while getting all user created tournaments from the database"), err)
 	}
 
@@ -236,20 +236,55 @@ func (d *dbProcessor) GetCreatorTournaments(user int) ([]models.Tournament, erro
 // GetOpenTournaments implements DbHandler.
 func (d *dbProcessor) GetOpenTournaments() ([]models.Tournament, error) {
 	var res []models.Tournament
-	err := d.db.Select(&res, getOpenTournaments)
-	if err != nil {
+
+	if err := d.db.Select(&res, getOpenTournaments, time.Now()); err != nil {
 		return nil, errors.Join(errors.New("error while getting opened tournaments from the database"), err)
 	}
 
 	return res, nil
 }
 
+// GetTournament implements DbHandler.
+func (d *dbProcessor) GetTournament(tour int) (models.Tournament, error) {
+	wrapErr := errors.New("error while getting tournament from the database")
+	var res models.Tournament
+
+	if err := d.db.Get(&res, getTournament, tour); err != nil {
+		return models.Tournament{}, errors.Join(wrapErr, err)
+	}
+
+	return res, nil
+}
+
+func (d *dbProcessor) GetRoute(routeId int) (models.Route, error) {
+	wrapErr := errors.New("error while getting route from the database")
+	var route models.Route
+
+	if err := d.db.Get(&route, getRoute, routeId); err != nil {
+		return models.Route{}, errors.Join(wrapErr, err)
+	}
+
+	return route, nil
+}
+
+// GetTournamentRoutes implements DbHandler.
+func (d *dbProcessor) GetTournamentRoutes(tour int) ([]models.Route, error) {
+	wrapErr := errors.New("error while getting tournament routes from the database")
+	var routes []models.Route
+
+	if err := d.db.Select(&routes, getTournamentRoutes, tour); err != nil {
+		return nil, errors.Join(wrapErr, err)
+	}
+
+	return routes, nil
+}
+
 // GetRouteRatings implements DbHandler.
 func (d *dbProcessor) GetRouteRatings(routeId int) ([]models.RouteRating, error) {
 	wrapErr := errors.New("error while getting route ratings from the database")
 	var ratings []models.RouteRating
-	err := d.db.Select(&ratings, getRouteBest, routeId)
-	if err != nil {
+
+	if err := d.db.Select(&ratings, getRouteBest, routeId); err != nil {
 		return nil, errors.Join(wrapErr, err)
 	}
 
@@ -261,16 +296,16 @@ func (d *dbProcessor) GetTournamentRatings(tour int) ([]models.TourRating, error
 	wrapErr := errors.New("error while getting tournament ratings from the database")
 
 	var routes []int
-	err := d.db.Select(&routes, getTournamentRoutes, tour)
-	if err != nil {
+
+	if err := d.db.Select(&routes, getTournamentRoutes, tour); err != nil {
 		return nil, errors.Join(wrapErr, err)
 	}
 
 	users := map[int]int{}
 	for i := 0; i < len(routes); i++ {
 		var rr []models.RouteRating
-		err = d.db.Select(&rr, getRouteTourBest, routes[i], tour)
-		if err != nil {
+
+		if err := d.db.Select(&rr, getRouteTourBest, routes[i], tour); err != nil {
 			return nil, errors.Join(wrapErr, err)
 		}
 
@@ -292,8 +327,8 @@ func (d *dbProcessor) GetTournamentRatings(tour int) ([]models.TourRating, error
 	ratings := make([]models.TourRating, 0, len(users))
 	for id, points := range users {
 		var name string
-		err := d.db.Get(&name, "SELECT name FROM users WHERE id = $1", id)
-		if err != nil {
+
+		if err := d.db.Get(&name, "SELECT name FROM users WHERE id = $1", id); err != nil {
 			name = "Unknown Name - (try reload the window)"
 		}
 		ratings = append(ratings, models.TourRating{
@@ -317,19 +352,29 @@ func (d *dbProcessor) GetTournamentRatings(tour int) ([]models.TourRating, error
 // GetUser implements DbHandler.
 func (d *dbProcessor) GetUser(email string) (models.User, error) {
 	var user models.User
-	err := d.db.Get(&user, getUser, email)
-	if err != nil {
+
+	if err := d.db.Get(&user, getUser, email); err != nil {
 		return models.User{}, errors.Join(errors.New("error while getting user from the database"), err)
 	}
 
 	return user, nil
 }
 
+func (d *dbProcessor) GetSprint(id int) (models.Sprint, error) {
+	var sprint models.Sprint
+
+	if err := d.db.Get(&sprint, getSprint, id); err != nil {
+		return models.Sprint{}, errors.Join(errors.New("error while getting sprint from the database"), err)
+	}
+
+	return sprint, nil
+}
+
 // GetUserHistory implements DbHandler.
 func (d *dbProcessor) GetUserHistory(id int) ([]models.Sprint, error) {
 	var user []models.Sprint
-	err := d.db.Select(&user, getUserHistory, id)
-	if err != nil {
+
+	if err := d.db.Select(&user, getUserHistory, id); err != nil {
 		return nil, errors.Join(errors.New("error while getting user's history from the database"), err)
 	}
 
@@ -339,8 +384,8 @@ func (d *dbProcessor) GetUserHistory(id int) ([]models.Sprint, error) {
 // GetUserRouteHistory implements DbHandler.
 func (d *dbProcessor) GetUserRouteHistory(userId int, routeId int) ([]models.Sprint, error) {
 	var user []models.Sprint
-	err := d.db.Select(&user, getUserRouteHistory, userId, routeId)
-	if err != nil {
+
+	if err := d.db.Select(&user, getUserRouteHistory, userId, routeId); err != nil {
 		return nil, errors.Join(errors.New("error while getting user's route history from the database"), err)
 	}
 
@@ -350,8 +395,8 @@ func (d *dbProcessor) GetUserRouteHistory(userId int, routeId int) ([]models.Spr
 // GetUserTournaments implements DbHandler.
 func (d *dbProcessor) GetUserTournaments(user int) ([]models.Tournament, error) {
 	var tournaments []models.Tournament
-	err := d.db.Select(&tournaments, getUserTournaments, user)
-	if err != nil {
+
+	if err := d.db.Select(&tournaments, getUserTournaments, user); err != nil {
 		return nil, errors.Join(errors.New("error while getting tournaments in which user participates from the database"), err)
 	}
 
@@ -376,13 +421,11 @@ func (d *dbProcessor) RemoveCreatorFromTour(tu models.TURelation, userId int) er
 	}
 	defer tx.Rollback()
 
-	_, err = tx.Exec(removeCreatorsFromTour, tu.TournamentId, tu.UserId)
-	if err != nil {
+	if _, err = tx.Exec(removeCreatorsFromTour, tu.TournamentId, tu.UserId); err != nil {
 		return errors.Join(wrapErr, err)
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err = tx.Commit(); err != nil {
 		return errors.Join(wrapErr, errCommitTx, err)
 	}
 
@@ -407,13 +450,11 @@ func (d *dbProcessor) RemoveRouteFromTour(tr models.TRRelation, userId int) erro
 	}
 	defer tx.Rollback()
 
-	_, err = tx.Exec(removeRouteFromTour, tr.TournamentId, tr.RouteId)
-	if err != nil {
+	if _, err = tx.Exec(removeRouteFromTour, tr.TournamentId, tr.RouteId); err != nil {
 		return errors.Join(wrapErr, err)
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err = tx.Commit(); err != nil {
 		return errors.Join(wrapErr, errCommitTx, err)
 	}
 
@@ -430,13 +471,11 @@ func (d *dbProcessor) RemoveUserFromTour(tu models.TURelation, userId int) error
 	}
 	defer tx.Rollback()
 
-	_, err = tx.Exec(removeUserFromTour, tu.TournamentId, tu.UserId)
-	if err != nil {
+	if _, err = tx.Exec(removeUserFromTour, tu.TournamentId, tu.UserId); err != nil {
 		return errors.Join(wrapErr, err)
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err = tx.Commit(); err != nil {
 		return errors.Join(wrapErr, errCommitTx, err)
 	}
 
@@ -460,13 +499,12 @@ func (d *dbProcessor) UpdateTournament(tour models.Tournament, user int) error {
 		return errors.Join(wrapErr, errBeginTx, err)
 	}
 	defer tx.Rollback()
-	_, err = tx.Exec(updateTournament, tour.Id, tour.StartTime, tour.EndTime, tour.Pswd, tour.Private)
-	if err != nil {
+
+	if _, err = tx.Exec(updateTournament, tour.Id, tour.StartTime, tour.EndTime, tour.Pswd, tour.Private); err != nil {
 		return errors.Join(wrapErr, err)
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err = tx.Commit(); err != nil {
 		return errors.Join(wrapErr, errCommitTx, err)
 	}
 
@@ -482,13 +520,12 @@ func (d *dbProcessor) UpdateUser(user models.User) error {
 		return errors.Join(wrapErr, errBeginTx, err)
 	}
 	defer tx.Rollback()
-	_, err = tx.Exec(updateUser, user.Id, user.Name, user.Email, user.Password)
-	if err != nil {
+
+	if _, err = tx.Exec(updateUser, user.Id, user.Name, user.Email, user.Password); err != nil {
 		return errors.Join(wrapErr, err)
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err = tx.Commit(); err != nil {
 		return errors.Join(wrapErr, errCommitTx, err)
 	}
 

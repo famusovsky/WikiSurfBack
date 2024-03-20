@@ -3,6 +3,7 @@ package app
 import (
 	"crypto/rand"
 	"errors"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gorilla/securecookie"
@@ -34,11 +35,13 @@ func (c *cookieHandler) Set(ctx *fiber.Ctx, email string) {
 		valName: email,
 	}
 	if encoded, err := c.instance.Encode(cookieName, value); err == nil {
+		now := time.Now()
 		cookie := &fiber.Cookie{
-			Name:   cookieName,
-			Value:  encoded,
-			Path:   "/",
-			Secure: true,
+			Name:    cookieName,
+			Value:   encoded,
+			Path:    "/",
+			Secure:  true,
+			Expires: now.Add(7 * 24 * time.Hour),
 		}
 		ctx.Cookie(cookie) // TODO
 	}

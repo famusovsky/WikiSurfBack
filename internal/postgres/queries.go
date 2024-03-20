@@ -124,6 +124,12 @@ const (
       GROUP BY user_id
     ) AS min_times ON s.user_id = min_times.user_id AND s.length_time = min_times.min_length_time
     ORDER BY s.length_time;`
+	// SQL запрос для получения данных о маршруте по id.
+	getRoute = `SELECT * FROM routes WHERE id = $1;`
+	// SQL запрос для получения данных о спринте по id.
+	getSprint = `SELECT * FROM sprint WHERE id = $1;`
+	// SQL запрос для получения данных о соревновании по id.
+	getTournament = `SELECT * FROM tournaments WHERE id = $1;`
 )
 
 // SQL запросы для добавления данных.
@@ -161,6 +167,8 @@ const (
 	checkTournamentPassword = `SELECT COUNT(*) FROM tournaments WHERE id = $1 AND pswd = $2;`
 	// SQL запрос для проверки создателя соревнования по tour_id, user_id.
 	checkTournamentCreator = `SELECT COUNT(*) FROM tournaments t JOIN tournament_creators tc ON t.id = tc.tour_id WHERE tc.user_id = $2 AND tc.tour_id = $1;`
+	// SQL запрос для проверки участника соревнования по tour_id, user_id.
+	checkTournamentParticipator = `SELECT COUNT(*) FROM tournaments t JOIN tournament_users tc ON t.id = tc.tour_id WHERE tc.user_id = $2 AND tc.tour_id = $1;`
 )
 
 // SQL запросы для обновления данных.

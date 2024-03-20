@@ -1,0 +1,29 @@
+<script src="./static/htmx.min.js"></script>
+
+<body>
+    <h2>Route {{.ind}}</h2>
+
+    <h4>
+        <div>Your place in the route: {{.place}}</div>
+    </h4>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Start article</th>
+                <th>Finish article</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>{{.start}}</td><td>{{.finish}}</td></tr>
+        </tbody>
+    </table>
+
+    <h4>
+        <a href={{.link}}>Start a sprint</a>
+    </h4>
+    <!-- TODO -->
+
+    {{template "partials/rating" .}}
+</body>
+    

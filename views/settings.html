@@ -1,0 +1,19 @@
+<script src="./static/htmx.min.js"></script>
+
+<body>
+    <h2>Settings</h2>
+
+    <form hx-put=/service/user hx-target="#result">
+        <label for="name">Username</label>
+        <input type="text" id="name" name="name" placeholder={{.name}}>
+        <label for="email">Email</label>
+        <input type="text" id="email" name="email" placeholder={{.email}}>
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password">
+        <button type="submit" hx-confirm="Are you sure?">Update your settings</button>
+        <br>
+    </form>
+
+    <div id="result"></div>
+</body>
+    

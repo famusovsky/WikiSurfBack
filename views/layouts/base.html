@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="./static/htmx.min.js"></script>
+<html>
+    <head>
+        <title>WikiSurf</title>
+        <link rel="stylesheet" href="https://unpkg.com/simpledotcss/simple.css">
+    </head>
+
+    <h3>
+        <button hx-get="/" hx-target="body">Main screen</button>
+        <button hx-get="/history" hx-target="body">History</button>
+        <button hx-get="/tournaments" hx-target="body">Tournaments</button>
+        <button hx-get="/settings" hx-target="body">Settings</button>
+    </h3>
+
+    <body>
+        {{embed}}
+    </body>
+
+    <footer>
+        WikiSurf
+    </footer>
+</html>
+
+
+
