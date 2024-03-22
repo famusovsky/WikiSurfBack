@@ -7,11 +7,15 @@
         <div>Password: {{.password}}</div>
         <div>Start time: {{.start}}</div>
         <div>End time: {{.end}}</div>
-        {{if .participates}}
-            <button hx-get={{printf "/tour-participate/%s" .ind }} hx-target="this" hx-swap="outerHTML">Participate in the tour #{{.ind}}</button>
+        {{if not .participates}} 
+            <button hx-post={{printf "/service/tour/participate/%s" .ind }} hx-target="body">Participate in the tour #{{.ind}}</button>
+            <div id="result"></div>
+        {{else}}
+            <button hx-delete={{printf "/service/tour/participate/%s" .ind }} hx-target="body">Quit the tour #{{.ind}}</button>
+            <div id="result"></div>
         {{end}}
         {{if .isCreator}}
-            <button hx-get={{printf "/edit-tour/%s" .ind }} hx-target="body">Edit the tour #{{.ind}}</button>
+            <button hx-get={{printf "/tournament/edit/%s" .ind }} hx-target="body">Edit the tour #{{.ind}}</button>
         {{end}}
     </h4>
 

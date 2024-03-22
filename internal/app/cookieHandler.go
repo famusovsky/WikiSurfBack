@@ -43,7 +43,7 @@ func (c *cookieHandler) Set(ctx *fiber.Ctx, email string) {
 			Secure:  true,
 			Expires: now.Add(7 * 24 * time.Hour),
 		}
-		ctx.Cookie(cookie) // TODO
+		ctx.Cookie(cookie) // Probably fixed
 	}
 }
 
@@ -59,4 +59,9 @@ func (c *cookieHandler) Read(ctx *fiber.Ctx) (string, error) {
 	}
 
 	return "", errors.New("cannot read cookie")
+}
+
+// Remove - функция, удаляющая куки, содержащий email пользователя.
+func (c *cookieHandler) Remove(ctx *fiber.Ctx) {
+	ctx.ClearCookie(cookieName)
 }

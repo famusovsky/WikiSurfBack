@@ -89,7 +89,7 @@ func (d *dbProcessor) AddSprint(sprint models.Sprint) (int, error) {
 }
 
 // AddTournament implements DbHandler.
-func (d *dbProcessor) AddTournament(tour models.Tournament) (int, error) {
+func (d *dbProcessor) AddTournament(tour models.Tournament, userId int) (int, error) {
 	wrapErr := errors.New("error while inserting tournament to the database")
 
 	tx, err := d.db.Begin()
@@ -101,6 +101,10 @@ func (d *dbProcessor) AddTournament(tour models.Tournament) (int, error) {
 	var id int
 
 	if err := tx.QueryRow(addTour, tour.StartTime, tour.EndTime, tour.Pswd, tour.Private).Scan(&id); err != nil {
+		return 0, errors.Join(wrapErr, err)
+	}
+
+	if _, err := tx.Exec(addCreatorToTour, id, userId); err != nil {
 		return 0, errors.Join(wrapErr, err)
 	}
 
@@ -170,7 +174,7 @@ func (d *dbProcessor) AddCreatorToTour(tu models.TURelation, userId int) error {
 }
 
 // AddUserToTour implements DbHandler.
-func (d *dbProcessor) AddUserToTour(tu models.TURelation, userId int) error {
+func (d *dbProcessor) AddUserToTour(tourId, userId int) error {
 	wrapErr := errors.New("error while adding user to the tournament in the database")
 
 	tx, err := d.db.Begin()
@@ -179,7 +183,7 @@ func (d *dbProcessor) AddUserToTour(tu models.TURelation, userId int) error {
 	}
 	defer tx.Rollback()
 
-	if _, err := tx.Exec(addUserToTour, tu.TournamentId, tu.UserId); err != nil {
+	if _, err := tx.Exec(addUserToTour, tourId, userId); err != nil {
 		return errors.Join(wrapErr, err)
 	}
 
@@ -191,7 +195,7 @@ func (d *dbProcessor) AddUserToTour(tu models.TURelation, userId int) error {
 }
 
 // CheckTournamentCreator implements DbHandler.
-func (d *dbProcessor) CheckTournamentCreator(tourId int, userId int) (bool, error) {
+func (d *dbProcessor) CheckTournamentCreator(tourId, userId int) (bool, error) {
 	var cnt int
 
 	if err := d.db.Get(&cnt, checkTournamentCreator, tourId, userId); err != nil {
@@ -212,14 +216,14 @@ func (d *dbProcessor) CheckTournamentParticipator(tourId int, userId int) (bool,
 }
 
 // CheckTournamentPassword implements DbHandler.
-func (d *dbProcessor) CheckTournamentPassword(tourId int, pswd string) (bool, error) {
-	var cnt int
+func (d *dbProcessor) CheckTournamentPassword(pswd string) (int, error) {
+	var id int
 
-	if err := d.db.Get(&cnt, checkTournamentPassword, tourId, pswd); err != nil {
-		return false, errors.Join(errors.New("error while checking tournament's password in the database"), err)
+	if err := d.db.Get(&id, checkTournamentPassword, pswd); err != nil {
+		return 0, errors.Join(errors.New("error while checking tournament's password in the database"), err)
 	}
 
-	return cnt > 0, nil
+	return id, nil
 }
 
 // GetCreatorTournaments implements DbHandler.
@@ -227,7 +231,7 @@ func (d *dbProcessor) GetCreatorTournaments(user int) ([]models.Tournament, erro
 	var res []models.Tournament
 
 	if err := d.db.Select(&res, getCreatorTournaments, user); err != nil {
-		return nil, errors.Join(errors.New("error while getting all user created tournaments from the database"), err)
+		return []models.Tournament{}, errors.Join(errors.New("error while getting all user created tournaments from the database"), err)
 	}
 
 	return res, nil
@@ -238,7 +242,7 @@ func (d *dbProcessor) GetOpenTournaments() ([]models.Tournament, error) {
 	var res []models.Tournament
 
 	if err := d.db.Select(&res, getOpenTournaments, time.Now()); err != nil {
-		return nil, errors.Join(errors.New("error while getting opened tournaments from the database"), err)
+		return []models.Tournament{}, errors.Join(errors.New("error while getting opened tournaments from the database"), err)
 	}
 
 	return res, nil
@@ -267,16 +271,39 @@ func (d *dbProcessor) GetRoute(routeId int) (models.Route, error) {
 	return route, nil
 }
 
+func (d *dbProcessor) GetRouteByCreds(start, finish string) (models.Route, error) {
+	wrapErr := errors.New("error while getting route from the database")
+	var route models.Route
+
+	if err := d.db.Get(&route, getRouteByCreds, start, finish); err != nil {
+		return models.Route{}, errors.Join(wrapErr, err)
+	}
+
+	return route, nil
+}
+
 // GetTournamentRoutes implements DbHandler.
 func (d *dbProcessor) GetTournamentRoutes(tour int) ([]models.Route, error) {
 	wrapErr := errors.New("error while getting tournament routes from the database")
 	var routes []models.Route
 
 	if err := d.db.Select(&routes, getTournamentRoutes, tour); err != nil {
-		return nil, errors.Join(wrapErr, err)
+		return []models.Route{}, errors.Join(wrapErr, err)
 	}
 
 	return routes, nil
+}
+
+// GetTournamentCreators implements DbHandler.
+func (d *dbProcessor) GetTournamentCreators(tour int) ([]models.User, error) {
+	wrapErr := errors.New("error while getting tournament creators from the database")
+	var creators []models.User
+
+	if err := d.db.Select(&creators, getTournamentCreators, tour); err != nil {
+		return []models.User{}, errors.Join(wrapErr, err)
+	}
+
+	return creators, nil
 }
 
 // GetRouteRatings implements DbHandler.
@@ -285,7 +312,7 @@ func (d *dbProcessor) GetRouteRatings(routeId int) ([]models.RouteRating, error)
 	var ratings []models.RouteRating
 
 	if err := d.db.Select(&ratings, getRouteBest, routeId); err != nil {
-		return nil, errors.Join(wrapErr, err)
+		return []models.RouteRating{}, errors.Join(wrapErr, err)
 	}
 
 	return ratings, nil
@@ -298,7 +325,7 @@ func (d *dbProcessor) GetTournamentRatings(tour int) ([]models.TourRating, error
 	var routes []int
 
 	if err := d.db.Select(&routes, getTournamentRoutes, tour); err != nil {
-		return nil, errors.Join(wrapErr, err)
+		return []models.TourRating{}, errors.Join(wrapErr, err)
 	}
 
 	users := map[int]int{}
@@ -306,12 +333,16 @@ func (d *dbProcessor) GetTournamentRatings(tour int) ([]models.TourRating, error
 		var rr []models.RouteRating
 
 		if err := d.db.Select(&rr, getRouteTourBest, routes[i], tour); err != nil {
-			return nil, errors.Join(wrapErr, err)
+			return []models.TourRating{}, errors.Join(wrapErr, err)
 		}
 
 		if len(rr) == 0 {
 			continue
 		}
+
+		sort.Slice(rr, func(i, j int) bool {
+			return rr[i].SprintLengthTime < rr[j].SprintLengthTime
+		})
 
 		min, id := rr[1].SprintLengthTime, 1
 		for j := 1; j < len(rr); j++ {
@@ -341,10 +372,61 @@ func (d *dbProcessor) GetTournamentRatings(tour int) ([]models.TourRating, error
 		return ratings[i].Points < ratings[j].Points
 	})
 
-	// res, err := json.Marshal(ratings)
-	// if err != nil {
-	// 	return nil, errors.Join(wrapErr, errMarshalling, err)
-	// }
+	return ratings, nil
+}
+
+// GetTournamentRatings implements DbHandler.
+func (d *dbProcessor) GetRatings() ([]models.TourRating, error) {
+	wrapErr := errors.New("error while getting ratings from the database")
+
+	var routes []int
+
+	if err := d.db.Select(&routes, getRoutes); err != nil {
+		return []models.TourRating{}, errors.Join(wrapErr, err)
+	}
+
+	users := map[int]int{}
+	for i := 0; i < len(routes); i++ {
+		var rr []models.RouteRating
+
+		if err := d.db.Select(&rr, getRouteBest, routes[i]); err != nil {
+			return []models.TourRating{}, errors.Join(wrapErr, err)
+		}
+
+		if len(rr) == 0 {
+			continue
+		}
+		sort.Slice(rr, func(i, j int) bool {
+			return rr[i].SprintLengthTime < rr[j].SprintLengthTime
+		})
+
+		min, id := rr[1].SprintLengthTime, 1
+		for j := 1; j < len(rr); j++ {
+			if rr[j].SprintLengthTime < min {
+				min = rr[j].SprintLengthTime
+				id = rr[j].UserId
+			}
+		}
+
+		users[id]++
+	}
+
+	ratings := make([]models.TourRating, 0, len(users))
+	for id, points := range users {
+		var name string
+
+		if err := d.db.Get(&name, "SELECT name FROM users WHERE id = $1", id); err != nil {
+			name = "Unknown Name - (try reload the window)"
+		}
+		ratings = append(ratings, models.TourRating{
+			UserName: name,
+			Points:   points,
+		})
+	}
+
+	sort.Slice(ratings, func(i, j int) bool {
+		return ratings[i].Points < ratings[j].Points
+	})
 
 	return ratings, nil
 }
@@ -354,6 +436,17 @@ func (d *dbProcessor) GetUser(email string) (models.User, error) {
 	var user models.User
 
 	if err := d.db.Get(&user, getUser, email); err != nil {
+		return models.User{}, errors.Join(errors.New("error while getting user from the database"), err)
+	}
+
+	return user, nil
+}
+
+// GetUser implements DbHandler.
+func (d *dbProcessor) GetUserById(id int) (models.User, error) {
+	var user models.User
+
+	if err := d.db.Get(&user, getUserById, id); err != nil {
 		return models.User{}, errors.Join(errors.New("error while getting user from the database"), err)
 	}
 
@@ -375,7 +468,7 @@ func (d *dbProcessor) GetUserHistory(id int) ([]models.Sprint, error) {
 	var user []models.Sprint
 
 	if err := d.db.Select(&user, getUserHistory, id); err != nil {
-		return nil, errors.Join(errors.New("error while getting user's history from the database"), err)
+		return []models.Sprint{}, errors.Join(errors.New("error while getting user's history from the database"), err)
 	}
 
 	return user, nil
@@ -386,7 +479,7 @@ func (d *dbProcessor) GetUserRouteHistory(userId int, routeId int) ([]models.Spr
 	var user []models.Sprint
 
 	if err := d.db.Select(&user, getUserRouteHistory, userId, routeId); err != nil {
-		return nil, errors.Join(errors.New("error while getting user's route history from the database"), err)
+		return []models.Sprint{}, errors.Join(errors.New("error while getting user's route history from the database"), err)
 	}
 
 	return user, nil
@@ -397,7 +490,7 @@ func (d *dbProcessor) GetUserTournaments(user int) ([]models.Tournament, error) 
 	var tournaments []models.Tournament
 
 	if err := d.db.Select(&tournaments, getUserTournaments, user); err != nil {
-		return nil, errors.Join(errors.New("error while getting tournaments in which user participates from the database"), err)
+		return []models.Tournament{}, errors.Join(errors.New("error while getting tournaments in which user participates from the database"), err)
 	}
 
 	return tournaments, nil
@@ -462,7 +555,7 @@ func (d *dbProcessor) RemoveRouteFromTour(tr models.TRRelation, userId int) erro
 }
 
 // RemoveUserFromTour implements DbHandler.
-func (d *dbProcessor) RemoveUserFromTour(tu models.TURelation, userId int) error {
+func (d *dbProcessor) RemoveUserFromTour(tourId, userId int) error {
 	wrapErr := errors.New("error while removing route from the tournament in the database")
 
 	tx, err := d.db.Begin()
@@ -471,7 +564,7 @@ func (d *dbProcessor) RemoveUserFromTour(tu models.TURelation, userId int) error
 	}
 	defer tx.Rollback()
 
-	if _, err = tx.Exec(removeUserFromTour, tu.TournamentId, tu.UserId); err != nil {
+	if _, err = tx.Exec(removeUserFromTour, tourId, userId); err != nil {
 		return errors.Join(wrapErr, err)
 	}
 
@@ -501,6 +594,44 @@ func (d *dbProcessor) UpdateTournament(tour models.Tournament, user int) error {
 	defer tx.Rollback()
 
 	if _, err = tx.Exec(updateTournament, tour.Id, tour.StartTime, tour.EndTime, tour.Pswd, tour.Private); err != nil {
+		return errors.Join(wrapErr, err)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return errors.Join(wrapErr, errCommitTx, err)
+	}
+
+	return nil
+}
+
+// UpdateTournament implements DbHandler.
+func (d *dbProcessor) DeleteTournament(tourId, userId int) error {
+	wrapErr := errors.New("error while updating the tournament in the database")
+
+	ok, err := d.CheckTournamentCreator(tourId, userId)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.Join(wrapErr, errNotCreator)
+	}
+
+	tx, err := d.db.Begin()
+	if err != nil {
+		return errors.Join(wrapErr, errBeginTx, err)
+	}
+	defer tx.Rollback()
+
+	if _, err = tx.Exec(deleteTourFromRoutes, tourId); err != nil {
+		return errors.Join(wrapErr, err)
+	}
+	if _, err = tx.Exec(deleteTourFromCreators, tourId); err != nil {
+		return errors.Join(wrapErr, err)
+	}
+	if _, err = tx.Exec(deleteTourFromUsers, tourId); err != nil {
+		return errors.Join(wrapErr, err)
+	}
+	if _, err = tx.Exec(deleteTournament, tourId); err != nil {
 		return errors.Join(wrapErr, err)
 	}
 

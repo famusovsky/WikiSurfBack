@@ -89,6 +89,8 @@ const (
 const (
 	// SQL запрос для получения пользователя по user.Email.
 	getUser = `SELECT * FROM users WHERE email = $1;`
+	// SQL запрос для получения пользователя по user.Id.
+	getUserById = `SELECT * FROM users WHERE id = $1;`
 	// SQL запрос для получения истории спринтов пользователя по user.Email.
 	getUserHistory = `SELECT * FROM sprints WHERE user_id = $1;`
 	// SQL запрос для получения истории спринтов пользователя по user.Email, route.Id.
@@ -103,10 +105,16 @@ const (
 	getCreatorTournaments = `SELECT * FROM tournaments WHERE id IN (
         SELECT tour_id FROM tournament_creators WHERE user_id = $1
     );`
-	// SQL запрос для получения соревнований по tournament.Id.
-	getTournamentRoutes = `SELECT * FROM routes WHERE id IN (
+	// SQL запрос для получения маршрутов соревнования по tournament.Id.
+	getTournamentRoutes = `SELECT id FROM routes WHERE id IN (
         SELECT route_id FROM tournament_routes WHERE tour_id = $1
     );`
+	// SQL запрос для получения маршрутов.
+	getRoutes = `SELECT id FROM routes;`
+	// SQL запрос для получения создателей соревнования по tournament.Id.
+	getTournamentCreators = `SELECT * FROM users WHERE id IN (
+		SELECT user_id FROM tournament_creators WHERE tour_id = $1
+	);`
 	// SQL запрос для получения данных о лучших результатах спринтов (length_time, path, user_id, spring_id) в маршруте по route.Id.
 	getRouteBest = `SELECT DISTINCT ON (s.user_id) 
     s.length_time AS length_time, s.path AS path, s.user_id AS user_id, s.id AS sprint_id
@@ -114,18 +122,18 @@ const (
       SELECT user_id, MIN(length_time) AS min_length_time
       FROM sprints WHERE success = true AND route_id = $1
       GROUP BY user_id
-    ) AS min_times ON s.user_id = min_times.user_id AND s.length_time = min_times.min_length_time
-    ORDER BY s.length_time;`
+    ) AS min_times ON s.user_id = min_times.user_id AND s.length_time = min_times.min_length_time;`
 	// SQL запрос для получения данных о лучших результатах спринтов (length_time, path, user_id, spring_id) в соревовании и маршруте по route.Id, tour.Id.
 	getRouteTourBest = `SELECT DISTINCT ON (s.user_id) s.length_time, s.path, s.user_id, s.id
     FROM sprints s INNER JOIN (
       SELECT user_id, MIN(length_time) AS min_length_time
       FROM sprints WHERE success = true AND route_id = $1 AND tour_id = $2
       GROUP BY user_id
-    ) AS min_times ON s.user_id = min_times.user_id AND s.length_time = min_times.min_length_time
-    ORDER BY s.length_time;`
+    ) AS min_times ON s.user_id = min_times.user_id AND s.length_time = min_times.min_length_time;`
 	// SQL запрос для получения данных о маршруте по id.
 	getRoute = `SELECT * FROM routes WHERE id = $1;`
+	// SQL запрос для получения данных о маршруте по start, finish.
+	getRouteByCreds = `SELECT * FROM routes WHERE start = $1 AND finish = $2;`
 	// SQL запрос для получения данных о спринте по id.
 	getSprint = `SELECT * FROM sprint WHERE id = $1;`
 	// SQL запрос для получения данных о соревновании по id.
@@ -159,12 +167,17 @@ const (
 	removeUserFromTour = `DELETE FROM tournament_users WHERE tour_id = $1 AND user_id = $2;`
 	// SQL запрос для добавления создателя из соревнования по tour_id, user_id.
 	removeCreatorsFromTour = `DELETE FROM tournament_creators WHERE tour_id = $1 AND user_id = $2;`
+	// SQL запрос для удаления соревнования по id.
+	deleteTournament       = `DELETE FROM tournaments WHERE id = $1;`
+	deleteTourFromCreators = `DELETE FROM tournament_creators WHERE tour_id = $1;`
+	deleteTourFromUsers    = `DELETE FROM tournament_users WHERE tour_id = $1;`
+	deleteTourFromRoutes   = `DELETE FROM tournament_routes WHERE tour_id = $1;`
 )
 
 // SQL запросы для проверки данных.
 const (
 	// SQL запрос для проверки пароля соревнования по id, pswd.
-	checkTournamentPassword = `SELECT COUNT(*) FROM tournaments WHERE id = $1 AND pswd = $2;`
+	checkTournamentPassword = `SELECT id FROM tournaments WHERE pswd = $1;`
 	// SQL запрос для проверки создателя соревнования по tour_id, user_id.
 	checkTournamentCreator = `SELECT COUNT(*) FROM tournaments t JOIN tournament_creators tc ON t.id = tc.tour_id WHERE tc.user_id = $2 AND tc.tour_id = $1;`
 	// SQL запрос для проверки участника соревнования по tour_id, user_id.

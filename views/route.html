@@ -20,10 +20,14 @@
     </table>
 
     <h4>
-        <a href={{.link}}>Start a sprint</a>
+        <a href={{.link}}>Start a sprint</a> <!-- TODO -->
     </h4>
-    <!-- TODO -->
 
-    {{template "partials/rating" .}}
+    <table>
+        <thead>
+            <tr><th>User Name</th><th>Time length</th><th>Steps</th></tr></thead>
+        </thead>
+        <tbody hx-get={{.ratingType}} hx-trigger="intersect once,every 5s" hx-target="this"></tbody>
+    </table>
 </body>
     

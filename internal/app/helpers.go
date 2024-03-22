@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"log"
 
 	"github.com/famusovsky/WikiSurfBack/internal/models"
 	"github.com/gofiber/fiber/v2"
@@ -57,15 +56,43 @@ func (app *App) getFullSprintDate(sprint models.Sprint) sprintData {
 	return res
 }
 
-func getToursTable(tours []models.Tournament) string {
-	var b *bytes.Buffer
-	q := `{{range .}}<tr><td hx-get={{printf "/tour/%s" .Id }}>{{.Id}}</td></tr>{{end}}`
+func getToursTable(tours []models.Tournament) (string, error) {
+	var b bytes.Buffer
+	q := `{{range .}}<tr><td hx-get={{printf "/tournament/%d" .Id }} hx-target="body">{{.Id}}</td></tr>{{end}}`
 
 	temp := template.Must(template.New("").Parse(q))
-
-	if err := temp.Execute(b, tours); err != nil {
-		log.Fatal(err)
+	if err := temp.Execute(&b, tours); err != nil {
+		return "", err
 	}
 
-	return b.String()
+	return b.String(), nil
+}
+
+func (app *App) errToResult(c *fiber.Ctx, err error, name ...string) error {
+	result := "#result"
+	if len(name) != 0 {
+		result = name[0]
+	}
+	app.errLog.Print(err)
+	c.Set("HX-Retarget", result)
+	return c.SendString(err.Error())
+}
+
+func (app *App) renderErr(c *fiber.Ctx, status int, err error) error {
+	app.errLog.Println(err)
+	return c.Render("error", fiber.Map{
+		"status":  status,
+		"errText": err.Error(),
+	}, "layouts/base")
+}
+
+func (app *App) renderSimpleRating(c *fiber.Ctx, ratings []models.TourRating, wrapErr error) error {
+	var b bytes.Buffer
+	q := `{{range .}}<tr><td>{{.UserName}}</td><td>{{.Points}}</td></tr>{{end}}`
+	t := template.Must(template.New("").Parse(q))
+	if err := t.Execute(&b, ratings); err != nil {
+		return app.renderErr(c, fiber.StatusInternalServerError, errors.Join(wrapErr, err))
+	}
+
+	return c.SendString(b.String())
 }

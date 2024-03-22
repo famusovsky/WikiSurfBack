@@ -18,9 +18,6 @@ func main() {
 	dsn := flag.String("dsn", "", "dsn for the db")
 	flag.Parse()
 
-	// FIXME delete
-	*dsn = "postgres://postgres:qwerty@localhost:8888/postgres?sslmode=disable"
-
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	errorLog := log.New(os.Stdout, "ERR\t", log.Ldate|log.Ltime)
 

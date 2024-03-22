@@ -2,7 +2,7 @@
 <body>
     <h2>Main screen</h2>
         
-    <form hx-post="/create-route" hx-target="body">
+    <form hx-post="/service/route/create" hx-target="body">
         <label for="start">Start article:</label>
         <input type="text" id="start" name="start" required>
         <label for="finish">Finish article:</label>
@@ -10,6 +10,10 @@
         <button type="submit">Create new route</button>
         <br>
     </form>
+
+    <p>
+        <div id="result"></div>
+    </p>
 
     {{template "partials/rating" .}}
         

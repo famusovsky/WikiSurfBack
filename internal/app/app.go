@@ -36,8 +36,11 @@ func CreateApp(db postgres.DbHandler, infoLog, errLog *log.Logger) *App {
 
 	application := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			errLog.Printf("%v", err)
-			return c.Status(http.StatusInternalServerError).JSON(err)
+			errLog.Printf("%s: %s %v", c.OriginalURL(), c.Method(), err)
+			return c.Render("error", fiber.Map{
+				"status":  http.StatusInternalServerError,
+				"errText": err.Error(),
+			}, "layouts/mini")
 		},
 		Views: engine,
 	})

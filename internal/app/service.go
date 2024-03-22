@@ -1,103 +1,69 @@
 package app
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
+	"html/template"
+	"math/rand"
 	"strconv"
+	"strings"
+	"time"
 
-	"github.com/badoux/checkmail"
 	"github.com/famusovsky/WikiSurfBack/internal/models"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
 )
-
-// signUp - функция, регистрирующая нового пользователя.
-func (app *App) signUp(c *fiber.Ctx) error {
-	c.Accepts("json")
-	var user models.User
-	wrapErr := errors.New("error while signing up user in api")
-
-	if err := c.BodyParser(&user); err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.NewError(fiber.StatusBadRequest, `request's body is wrong`)
-	}
-
-	if err := checkmail.ValidateFormat(user.Email); err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.NewError(fiber.StatusBadRequest, `email is wrong`)
-	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), 8)
-	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.NewError(fiber.StatusInternalServerError, "error while hashing the password")
-	}
-
-	user.Password = string(hashedPassword)
-
-	_, err = app.db.AddUser(user)
-	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.NewError(fiber.StatusInternalServerError, "error while saving user info")
-	}
-
-	app.ch.Set(c, user.Email)
-
-	app.infoLog.Printf("user %s signed up\n", user.Name)
-
-	return c.Redirect("/")
-}
-
-// signIn - функция, авторизирующая пользователя.
-func (app *App) signIn(c *fiber.Ctx) error {
-	wrapErr := errors.New("error while signing in user in api")
-	email, pswd := c.Query("email"), c.Query("password")
-	if email == "" || pswd == "" {
-		app.errLog.Println(errors.Join(wrapErr, errors.New(`request's body is wrong`)))
-		return fiber.NewError(fiber.StatusBadRequest, `request's body is wrong`)
-	}
-
-	user, err := app.db.GetUser(email)
-	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.NewError(fiber.StatusInternalServerError, "error while checking user info")
-	}
-
-	if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(pswd)); err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.NewError(fiber.StatusUnauthorized, "wrong password")
-	}
-
-	app.ch.Set(c, user.Email)
-
-	app.infoLog.Printf("user %s signed in\n", user.Name)
-
-	return c.Redirect("/")
-}
-
-// TODO signout
-
-func (app *App) getRating(c *fiber.Ctx) error {
-	// TODO
-	return c.SendString(`<tr><td>First</td><td>Second</td></tr>`)
-}
 
 // getRouteRating - функция, возвращяющая рейтинг по маршруту.
 func (app *App) getRouteRating(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting route ratings in api")
 	id, err := strconv.Atoi(c.Params("route"))
 	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.ErrBadRequest
+		return app.renderErr(c, fiber.StatusBadRequest, errors.Join(wrapErr, err))
 	}
 
 	ratings, err := app.db.GetRouteRatings(id)
 	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.ErrInternalServerError
+		return app.renderErr(c, fiber.StatusNotFound, errors.Join(wrapErr, err))
+	}
+	ratingsData := make([]struct {
+		Id     int
+		Name   string
+		Length string
+		Steps  string
+	}, len(ratings))
+	for i := range ratings {
+		ratingsData[i].Id = ratings[i].SprintId
+
+		s := ratings[i].SprintLengthTime / 1000
+		ms := ratings[i].SprintLengthTime % 1000
+		min := s / 60
+		s = min % 60
+		ratingsData[i].Length = fmt.Sprintf("%d min, %d s, %d ms", min, s, ms)
+
+		ratingsData[i].Steps = strconv.Itoa(ratings[i].SprintLengthSteps)
+
+		usr, err := app.db.GetUserById(ratings[i].UserId)
+		if err != nil {
+			ratingsData[i].Name = fmt.Sprintf("User with id:%d", ratings[i].UserId)
+		} else {
+			ratingsData[i].Name = usr.Name
+		}
 	}
 
-	app.infoLog.Printf("ratings for route %d is successfully getted\n", id)
-	return c.JSON(ratings)
+	var b bytes.Buffer
+	q := `{{range .}}<tr hx-get={{printf "/sprint/%d" .Id }} hx-target="body">
+	<td>{{.Name}}</td>
+	<td>{{.Length}}</td>
+	<td>{{.Steps}}</td>
+	</tr>{{end}}`
+	t := template.Must(template.New("").Parse(q))
+	if err := t.Execute(&b, ratingsData); err != nil {
+		return app.renderErr(c, fiber.StatusInternalServerError, errors.Join(wrapErr, err))
+	}
+
+	return c.SendString(b.String())
 }
 
 // getTourRating - функция, возвращяющая рейтинг по соревнованию.
@@ -105,26 +71,31 @@ func (app *App) getTourRating(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting tournament ratings in api")
 	id, err := strconv.Atoi(c.Params("tour"))
 	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.ErrBadRequest
+		return app.renderErr(c, fiber.StatusBadRequest, errors.Join(wrapErr, err))
 	}
 
 	ratings, err := app.db.GetTournamentRatings(id)
 	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
-		return fiber.NewError(fiber.StatusInternalServerError)
+		return app.renderErr(c, fiber.StatusNotFound, errors.Join(wrapErr, err))
 	}
 
-	app.infoLog.Printf("ratings for tour %d is successfully getted\n", id)
-	return c.JSON(ratings)
+	return app.renderSimpleRating(c, ratings, wrapErr)
+}
+
+func (app *App) getRating(c *fiber.Ctx) error {
+	wrapErr := errors.New("error while getting ratings in api")
+
+	ratings, err := app.db.GetRatings()
+	if err != nil {
+		return app.renderErr(c, fiber.StatusNotFound, errors.Join(wrapErr, err))
+	}
+
+	return app.renderSimpleRating(c, ratings, wrapErr)
 }
 
 func (app *App) updateUser(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while updating user")
-	user, ok := app.getUser(c, wrapErr)
-	if !ok {
-		return wrapErr
-	}
+	user, _ := app.getUser(c, wrapErr)
 
 	creds := struct {
 		Name     string
@@ -138,8 +109,7 @@ func (app *App) updateUser(c *fiber.Ctx) error {
 	if creds.Password != "" {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(creds.Password), 8)
 		if err != nil {
-			app.errLog.Println(errors.Join(wrapErr, err))
-			return errors.Join(wrapErr, err)
+			return app.errToResult(c, errors.Join(wrapErr, err))
 		}
 
 		user.Password = string(hashedPassword)
@@ -150,8 +120,334 @@ func (app *App) updateUser(c *fiber.Ctx) error {
 
 	err := app.db.UpdateUser(user)
 	if err != nil {
-		return err
+		return app.errToResult(c, errors.Join(wrapErr, err))
 	}
 
-	return c.SendString("Ok")
+	return app.renderSettings(c)
+}
+
+func (app *App) participateViaId(c *fiber.Ctx) error {
+	wrapErr := errors.New("error while adding user to tour")
+	user, _ := app.getUser(c, wrapErr)
+
+	tourId, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+
+	err = app.db.AddUserToTour(tourId, user.Id)
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+
+	return c.Next()
+}
+
+func (app *App) quitParticipateViaId(c *fiber.Ctx) error {
+	wrapErr := errors.New("error while removing user from the tour")
+	user, _ := app.getUser(c, wrapErr)
+
+	tourId, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+
+	err = app.db.RemoveUserFromTour(tourId, user.Id)
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+
+	return c.Next()
+}
+
+func (app *App) participateViaPassword(c *fiber.Ctx) error {
+	wrapErr := errors.New("error while adding user to tour")
+	user, _ := app.getUser(c, wrapErr)
+
+	pswd := struct {
+		Password string
+	}{}
+	if err := c.BodyParser(&pswd); err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+
+	id, err := app.db.CheckTournamentPassword(pswd.Password)
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+
+	err = app.db.AddUserToTour(id, user.Id)
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+
+	return c.SendString(fmt.Sprintf("You are entered tour #%d", id))
+}
+
+func (app *App) createRoute(c *fiber.Ctx) error {
+	route := models.Route{}
+	wrapErr := errors.New("error while creating route")
+
+	user, _ := app.getUser(c, wrapErr)
+
+	if err := c.BodyParser(&route); err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+
+	route.CreatorId = user.Id
+	id, err := app.db.AddRoute(route)
+
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+
+	return c.Redirect(fmt.Sprintf("/route/%d", id))
+}
+
+func (app *App) createTour(c *fiber.Ctx) error {
+	var pswd strings.Builder
+	getRand := func(out *strings.Builder) {
+		charSet := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
+		for i := 0; i < 32; i++ {
+			random := rand.Intn(len(charSet))
+			randomChar := charSet[random]
+			out.WriteRune(randomChar)
+		}
+	}
+
+	for {
+		getRand(&pswd)
+		_, err := app.db.CheckTournamentPassword(pswd.String())
+		if err != nil {
+			break
+		}
+		pswd.Reset()
+	}
+
+	t := models.Tournament{
+		StartTime: time.Now(),
+		EndTime:   time.Now().AddDate(0, 0, 7),
+		Private:   true,
+		Pswd:      pswd.String(),
+	}
+
+	wrapErr := errors.New("error while creating tour")
+
+	user, _ := app.getUser(c, wrapErr)
+
+	id, err := app.db.AddTournament(t, user.Id)
+	if err != nil {
+		return app.renderErr(c, fiber.StatusInternalServerError, errors.Join(wrapErr, err))
+	}
+
+	return c.Redirect(fmt.Sprintf("/tournament/edit/%d", id))
+}
+
+func (app *App) updateTour(c *fiber.Ctx) error {
+	wrapErr := errors.New("error while editing the tour")
+
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+
+	user, _ := app.getUser(c, wrapErr)
+	ok, err := app.db.CheckTournamentCreator(id, user.Id)
+	if !ok || err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+
+	times := struct {
+		Start string
+		End   string
+	}{}
+	if err := c.BodyParser(&times); err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+
+	tour, err := app.db.GetTournament(id)
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+	if t, err := time.Parse("2006-01-02T15:04:00Z", times.Start+":00Z"); err == nil && !t.IsZero() {
+		tour.StartTime = t
+	}
+	if t, err := time.Parse("2006-01-02T15:04:00Z", times.End+":00Z"); err == nil && !t.IsZero() {
+		tour.EndTime = t
+	}
+
+	if err := app.db.UpdateTournament(tour, user.Id); err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+
+	return c.Redirect(fmt.Sprintf("/tournament/edit/%d", id))
+}
+
+func (app *App) deleteTour(c *fiber.Ctx) error {
+	wrapErr := errors.New("error while deleting the tour")
+
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+
+	user, _ := app.getUser(c, wrapErr)
+	ok, err := app.db.CheckTournamentCreator(id, user.Id)
+	if !ok || err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+
+	if err := app.db.DeleteTournament(id, user.Id); err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+
+	return c.Redirect("/tournaments")
+}
+
+func (app *App) addRouteToTour(c *fiber.Ctx) error {
+	wrapErr := errors.New("error while adding route to the tour")
+
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err), "#routesResult")
+	}
+
+	user, _ := app.getUser(c, wrapErr)
+	ok, err := app.db.CheckTournamentCreator(id, user.Id)
+	if !ok || err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err), "#routesResult")
+	}
+
+	route := models.Route{}
+	if err := c.BodyParser(&route); err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err), "#routesResult")
+	}
+	route.CreatorId = user.Id
+
+	if r, err := app.db.GetRouteByCreds(route.Start, route.Finish); err != nil {
+		if id, err := app.db.AddRoute(route); err != nil {
+			route.Id = id
+		} else {
+			return app.errToResult(c, errors.Join(wrapErr, err), "#routesResult")
+		}
+	} else {
+		route = r
+	}
+
+	if err := app.db.AddRouteToTour(models.TRRelation{
+		TournamentId: id,
+		RouteId:      route.Id,
+	}, user.Id); err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err), "#routesResult")
+	}
+
+	return c.Redirect(fmt.Sprintf("/tournament/edit/%d", id))
+}
+
+func (app *App) removeRouteFromTour(c *fiber.Ctx) error {
+	wrapErr := errors.New("error while removing route from the tour")
+
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err), "#routesResult")
+	}
+
+	user, _ := app.getUser(c, wrapErr)
+	ok, err := app.db.CheckTournamentCreator(id, user.Id)
+	if !ok || err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err), "#routesResult")
+	}
+
+	route := models.Route{}
+	if err := c.BodyParser(&route); err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err), "#routesResult")
+	}
+	route.CreatorId = user.Id
+
+	if r, err := app.db.GetRouteByCreds(route.Start, route.Finish); err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err), "#routesResult")
+	} else {
+		route = r
+	}
+
+	if err := app.db.RemoveRouteFromTour(models.TRRelation{
+		TournamentId: id,
+		RouteId:      route.Id,
+	}, user.Id); err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err), "#routesResult")
+	}
+
+	return c.Redirect(fmt.Sprintf("/tournament/edit/%d", id))
+}
+
+func (app *App) addCreatorToTour(c *fiber.Ctx) error {
+	wrapErr := errors.New("error while adding creator to the tour")
+
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err), "#creatorResult")
+	}
+
+	user, _ := app.getUser(c, wrapErr)
+	ok, err := app.db.CheckTournamentCreator(id, user.Id)
+	if !ok || err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err), "#creatorResult")
+	}
+
+	email := struct {
+		Email string
+	}{}
+
+	if err := c.BodyParser(&email); err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err), "#creatorResult")
+	}
+	creator, err := app.db.GetUser(email.Email)
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err), "#creatorResult")
+	}
+
+	if err := app.db.AddCreatorToTour(models.TURelation{
+		TournamentId: id,
+		UserId:       creator.Id,
+	}, user.Id); err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err), "#creatorResult")
+	}
+
+	return c.Redirect(fmt.Sprintf("/tournament/edit/%d", id))
+}
+
+func (app *App) removeCreatorFromTour(c *fiber.Ctx) error {
+	wrapErr := errors.New("error while adding creator to the tour")
+
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err), "#creatorResult")
+	}
+
+	user, _ := app.getUser(c, wrapErr)
+	ok, err := app.db.CheckTournamentCreator(id, user.Id)
+	if !ok || err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err), "#creatorResult")
+	}
+
+	email := struct {
+		Email string
+	}{}
+
+	if err := c.BodyParser(&email); err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err), "#creatorResult")
+	}
+	creator, err := app.db.GetUser(email.Email)
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err), "#creatorResult")
+	}
+
+	if err := app.db.RemoveCreatorFromTour(models.TURelation{
+		TournamentId: id,
+		UserId:       creator.Id,
+	}, user.Id); err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err), "#creatorResult")
+	}
+
+	return c.Redirect(fmt.Sprintf("/tournament/edit/%d", id))
 }

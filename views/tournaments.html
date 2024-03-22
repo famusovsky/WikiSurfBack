@@ -4,10 +4,10 @@
     <h2>Tournaments</h2>
 
     <h4>
-        <button hx-get="/service/create-tournament" hx-target="body">Create a new tournament</button><br>
+        <button hx-get="/service/tour/create" hx-target="body">Create a new tournament</button><br>
     </h4>
 
-    <form hx-post="/service/connect-to-tour" hx-target="#result">
+    <form hx-post="/service/tour/participate" hx-target="#result">
         <input type="text" id="password" name="password" required>
         <button type="submit">Connect via password</button>
         <div id="result"></div>
