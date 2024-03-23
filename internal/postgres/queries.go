@@ -110,7 +110,10 @@ const (
         SELECT route_id FROM tournament_routes WHERE tour_id = $1
     );`
 	// SQL запрос для получения маршрутов.
-	getRoutes = `SELECT id FROM routes;`
+	getRoutesIds = `SELECT id FROM routes;`
+	// SQL запрос для получения популярных маршрутов.
+	getPopularRoutes = `SELECT routes.id, routes.start, routes.finish, routes.creator_id
+	FROM routes LEFT JOIN sprints ON routes.id = sprints.route_id GROUP BY routes.id ORDER BY COUNT(sprints.id) DESC;`
 	// SQL запрос для получения создателей соревнования по tournament.Id.
 	getTournamentCreators = `SELECT * FROM users WHERE id IN (
 		SELECT user_id FROM tournament_creators WHERE tour_id = $1

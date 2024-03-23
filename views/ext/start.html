@@ -1,0 +1,14 @@
+<h2>Main screen</h2>
+
+<form hx-post="/service/route/start" hx-target="body">
+    <label for="start">Start article:</label>
+    <input type="text" id="start" name="start" required>
+    <label for="finish">Finish article:</label>
+    <input type="text" id="finish" name="finish" required>
+    <button type="submit">Start a route</button>
+    <br>
+</form>
+    
+<p>
+    <div id="result"></div>
+</p>        

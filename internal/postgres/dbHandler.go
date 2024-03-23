@@ -22,6 +22,7 @@ type DbHandler interface {
 	GetUser(email string) (models.User, error)                        // GetUser - получение пользователя по email-у
 	GetUserById(id int) (models.User, error)                          // GetUserById - получение пользователя по id
 	GetRoute(id int) (models.Route, error)                            // GetRoute - получение маршрута по id.
+	GetPopularRoutes() ([]models.Route, error)                        // GetRoutes - получение популярных маршрутов.
 	GetRouteByCreds(start, finish string) (models.Route, error)       // GetRouteByCreds - получение маршрута по start, finish.
 	GetSprint(id int) (models.Sprint, error)                          // GetSprint - получение спринта по id.
 	GetTournament(id int) (models.Tournament, error)                  // GetTournament - получение соревнования по id.

@@ -9,6 +9,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// TODO change error output to normal (->result)
+
 // signUp - функция, регистрирующая нового пользователя.
 func (app *App) signUp(c *fiber.Ctx) error {
 	c.Accepts("json")

@@ -11,15 +11,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func (app *App) checkReg(c *fiber.Ctx) error {
-	_, ok := app.getUser(c, errors.New("error while checking authorization"))
-	if !ok {
-		return c.Redirect("/auth")
-	}
-
-	return c.Next()
-}
-
 func (app *App) auth(c *fiber.Ctx) error {
 	if c.Query("signin") != "" {
 		return app.signIn(c)

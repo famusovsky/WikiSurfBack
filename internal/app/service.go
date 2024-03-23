@@ -194,6 +194,8 @@ func (app *App) createRoute(c *fiber.Ctx) error {
 		return app.errToResult(c, errors.Join(wrapErr, err))
 	}
 
+	// TODO check if route start and finish are wiki links
+
 	route.CreatorId = user.Id
 	id, err := app.db.AddRoute(route)
 
@@ -325,6 +327,7 @@ func (app *App) addRouteToTour(c *fiber.Ctx) error {
 	route.CreatorId = user.Id
 
 	if r, err := app.db.GetRouteByCreds(route.Start, route.Finish); err != nil {
+		// TODO check start and finish
 		if id, err := app.db.AddRoute(route); err != nil {
 			route.Id = id
 		} else {

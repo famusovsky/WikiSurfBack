@@ -271,6 +271,17 @@ func (d *dbProcessor) GetRoute(routeId int) (models.Route, error) {
 	return route, nil
 }
 
+func (d *dbProcessor) GetPopularRoutes() ([]models.Route, error) {
+	wrapErr := errors.New("error while getting route from the database")
+	var routes []models.Route
+
+	if err := d.db.Select(&routes, getPopularRoutes); err != nil {
+		return []models.Route{}, errors.Join(wrapErr, err)
+	}
+
+	return routes, nil
+}
+
 func (d *dbProcessor) GetRouteByCreds(start, finish string) (models.Route, error) {
 	wrapErr := errors.New("error while getting route from the database")
 	var route models.Route
@@ -381,7 +392,7 @@ func (d *dbProcessor) GetRatings() ([]models.TourRating, error) {
 
 	var routes []int
 
-	if err := d.db.Select(&routes, getRoutes); err != nil {
+	if err := d.db.Select(&routes, getRoutesIds); err != nil {
 		return []models.TourRating{}, errors.Join(wrapErr, err)
 	}
 

@@ -6,19 +6,22 @@
         <link rel="stylesheet" href="https://unpkg.com/simpledotcss/simple.css">
     </head>
 
-    <h3>
+    <header>
+        <h1>WikiSurf</h1>
+        <nav>
         <button hx-get="/" hx-target="body">Main screen</button>
         <button hx-get="/history" hx-target="body">History</button>
         <button hx-get="/tournaments" hx-target="body">Tournaments</button>
         <button hx-get="/settings" hx-target="body">Settings</button>
-    </h3>
+        </nav>
+    </header>
 
     <body>
         {{embed}}
     </body>
 
     <footer>
-        WikiSurf
+        <label>Created via <strong><a href='https://go.dev/'>Golang</a></strong> with ❤️</label>
     </footer>
 </html>
 

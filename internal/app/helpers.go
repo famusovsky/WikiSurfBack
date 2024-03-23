@@ -10,11 +10,29 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+func (app *App) checkReg(c *fiber.Ctx) error {
+	_, ok := app.getUser(c, errors.New("error while checking authorization"))
+	if !ok {
+		return c.Redirect("/auth")
+	}
+
+	return c.Next()
+}
+
+func (app *App) checkRegExt(c *fiber.Ctx) error {
+	_, ok := app.getUser(c, errors.New("error while checking authorization"))
+	if !ok {
+		return c.Redirect("/ext/auth")
+	}
+
+	return c.Next()
+}
+
 // getUser - функция, возвращающая пользователя по fiber.Ctx.
 func (app *App) getUser(c *fiber.Ctx, wrapErr error) (models.User, bool) {
 	email, err := app.ch.Read(c)
 	if err != nil {
-		app.errLog.Println(errors.Join(wrapErr, err))
+		// app.errLog.Println(errors.Join(wrapErr, err))
 		return models.User{}, false
 	}
 
