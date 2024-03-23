@@ -43,19 +43,19 @@ func (app *App) renderHistory(c *fiber.Ctx) error {
 	}
 
 	res := make([]sprintData, len(history))
-	getData := func(res []sprintData, i int) {
-		res[i] = app.getFullSprintDate(history[i])
+	getData := func(res []sprintData, i int, wg *sync.WaitGroup) {
+		res[i] = app.getFullSprintData(history[i])
+		wg.Done()
 	}
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(res))
-	for i := range res {
-		go getData(res, i)
-		wg.Done()
+	for i := 0; i < len(res); i++ {
+		go getData(res, i, &wg)
 	}
 	wg.Wait()
 
-	q := `{{range .}}<tr hx-get={{printf "/sprint/%d" .id }} hx-target="body">
+	q := `{{range .}}<tr hx-get={{printf "/sprint/%d" .Id }} hx-target="body">
 	<td>{{.Start}}</td>
 	<td>{{.Finish}}</td>
 	<td>{{.StartTime}}</td>
@@ -63,7 +63,6 @@ func (app *App) renderHistory(c *fiber.Ctx) error {
 	<td>{{.Steps}}</td>
 	</tr>{{end}}`
 	t := template.Must(template.New("").Parse(q))
-
 	var body bytes.Buffer
 	if err := t.Execute(&body, res); err != nil {
 		return app.renderErr(c, fiber.StatusInternalServerError, errors.Join(wrapErr, err))
@@ -99,11 +98,10 @@ func (app *App) renderSprint(c *fiber.Ctx) error {
 	wg.Add(3)
 
 	go func(b *bytes.Buffer, wg *sync.WaitGroup, e []error) {
-		q := `{{range .}}<tr><td>{{.Start}}</td><td>{{.Finish}}</td><td>{{.StartTime}}</td><td>{{.LengthTime}}</td><td>{{.Steps}}</td></tr>{{end}}`
+		q := `<tr><td>{{.Start}}</td><td>{{.Finish}}</td><td>{{.StartTime}}</td><td>{{.LengthTime}}</td><td>{{.Steps}}</td></tr>`
 
-		data := app.getFullSprintDate(sprint)
+		data := app.getFullSprintData(sprint)
 		t := template.Must(template.New("").Parse(q))
-
 		if err := t.Execute(b, data); err != nil {
 			e[0] = err
 		}
@@ -117,6 +115,7 @@ func (app *App) renderSprint(c *fiber.Ctx) error {
 		if err := t.Execute(b, sprint.Path); err != nil {
 			e[1] = err
 		}
+		app.infoLog.Println(b.String())
 		wg.Done()
 	}(&stepsTbody, &wg, errs)
 
@@ -124,7 +123,7 @@ func (app *App) renderSprint(c *fiber.Ctx) error {
 	go func(place *int, wg *sync.WaitGroup, e []error) {
 		rating, err := app.db.GetRouteRatings(sprint.RouteId)
 		if err == nil {
-			for i := range rating {
+			for i := 0; i < len(rating); i++ {
 				if rating[i].UserId == sprint.UserId {
 					*place = i + 1
 					break
@@ -135,6 +134,7 @@ func (app *App) renderSprint(c *fiber.Ctx) error {
 		}
 		wg.Done()
 	}(&place, &wg, errs)
+	wg.Wait()
 
 	for _, err := range errs {
 		if err != nil {
@@ -146,7 +146,7 @@ func (app *App) renderSprint(c *fiber.Ctx) error {
 		"ind":        strconv.Itoa(sprint.Id),
 		"infoTbody":  infoTbody.String(),
 		"place":      strconv.Itoa(place),
-		"routeId":    strconv.Itoa(sprint.RouteId),
+		"routeId":    sprint.RouteId,
 		"stepsTbody": stepsTbody.String(),
 	}, "layouts/base")
 }

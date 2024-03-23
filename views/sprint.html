@@ -1,10 +1,10 @@
-<script src="./static/htmx.min.js"></script>
+<script src="/static/htmx.min.js"></script>
 
 <body>
     <h2>Sprint {{.ind}}</h2>
 
     <h4>
-        <button hx-get={{printf "/route/%s" .routeId }} hx-target="body">Go to route #{{.routeId}}</button>
+        <button hx-get={{printf "/route/%d" .routeId }} hx-target="body">Go to route #{{.routeId}}</button>
         <div>Your place in the route: {{.place}}</div>
     </h4>
 
@@ -27,7 +27,6 @@
         <thead>
             <tr>
                 <th>Step</th>
-                <th>Article</th>
             </tr>
         </thead>
         <tbody>

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"regexp"
 
 	"github.com/famusovsky/WikiSurfBack/internal/models"
 	"github.com/gofiber/fiber/v2"
@@ -46,6 +47,7 @@ func (app *App) getUser(c *fiber.Ctx, wrapErr error) (models.User, bool) {
 }
 
 type sprintData struct {
+	Id         int
 	Start      string
 	Finish     string
 	StartTime  string
@@ -53,8 +55,9 @@ type sprintData struct {
 	Steps      int
 }
 
-func (app *App) getFullSprintDate(sprint models.Sprint) sprintData {
+func (app *App) getFullSprintData(sprint models.Sprint) sprintData {
 	res := sprintData{}
+	res.Id = sprint.Id
 	res.StartTime = sprint.StartTime.Format("2006 Jan 2 15:04")
 	s := sprint.LengthTime / 1000
 	ms := sprint.LengthTime % 1000
@@ -113,4 +116,30 @@ func (app *App) renderSimpleRating(c *fiber.Ctx, ratings []models.TourRating, wr
 	}
 
 	return c.SendString(b.String())
+}
+
+func (app *App) getOrCreateRoute(c *fiber.Ctx, wrapErr error, resultAddr string) (models.Route, error) {
+	user, _ := app.getUser(c, wrapErr)
+
+	route := models.Route{}
+	if err := c.BodyParser(&route); err != nil {
+		return models.Route{}, app.errToResult(c, errors.Join(wrapErr, err), resultAddr)
+	}
+	route.CreatorId = user.Id
+
+	if r, err := app.db.GetRouteByCreds(route.Start, route.Finish); err != nil {
+		if r := regexp.MustCompile(`.*wikipedia\.org\/wiki\/[^\s"]+`); !(r.Match([]byte(route.Start)) && r.Match([]byte(route.Finish))) {
+			return models.Route{}, app.errToResult(c, errors.Join(wrapErr, errors.New("input must be a wikipedia article link")))
+		}
+
+		if id, err := app.db.AddRoute(route); err != nil {
+			route.Id = id
+		} else {
+			return models.Route{}, app.errToResult(c, errors.Join(wrapErr, err), resultAddr)
+		}
+	} else {
+		route = r
+	}
+
+	return route, nil
 }

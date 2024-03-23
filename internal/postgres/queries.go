@@ -16,7 +16,6 @@ const (
     finish TEXT NOT NULL,
     creator_id INTEGER NOT NULL,
     CONSTRAINT start_finish UNIQUE (start, finish),
-    -- ratings JSON,
     FOREIGN KEY (creator_id) REFERENCES users(id)
 );`
 	// SQL запрос для создания таблицы спринтов.
@@ -27,11 +26,9 @@ const (
     success BOOLEAN NOT NULL,
     route_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
-    tour_id INTEGER,
-    path JSON NOT NULL,
+    path TEXT ARRAY NOT NULL,
     FOREIGN KEY (route_id) REFERENCES routes(id),
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (tour_id) REFERENCES tournaments(id)
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );`
 	// SQL запрос для создания таблицы соревнований.
 	createTours = `CREATE TABLE IF NOT EXISTS tournaments (
@@ -92,7 +89,7 @@ const (
 	// SQL запрос для получения пользователя по user.Id.
 	getUserById = `SELECT * FROM users WHERE id = $1;`
 	// SQL запрос для получения истории спринтов пользователя по user.Email.
-	getUserHistory = `SELECT * FROM sprints WHERE user_id = $1;`
+	getUserHistory = `SELECT * FROM sprints WHERE user_id = $1 ORDER BY start_time DESC;`
 	// SQL запрос для получения истории спринтов пользователя по user.Email, route.Id.
 	getUserRouteHistory = `SELECT * FROM sprints WHERE user_id = $1 AND route_id = $2;`
 	// SQL запрос для получения открытых соревнований.
@@ -138,7 +135,7 @@ const (
 	// SQL запрос для получения данных о маршруте по start, finish.
 	getRouteByCreds = `SELECT * FROM routes WHERE start = $1 AND finish = $2;`
 	// SQL запрос для получения данных о спринте по id.
-	getSprint = `SELECT * FROM sprint WHERE id = $1;`
+	getSprint = `SELECT * FROM sprints WHERE id = $1;`
 	// SQL запрос для получения данных о соревновании по id.
 	getTournament = `SELECT * FROM tournaments WHERE id = $1;`
 )
@@ -149,9 +146,9 @@ const (
 	addUser = `INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id;`
 	// SQL запрос для добавления маршрута по start, finish, creator_id.
 	addRoute = `INSERT INTO routes (start, finish, creator_id) VALUES ($1, $2, $3) RETURNING id;`
-	// SQL запрос для добавления спринта по start_time, length_time, success, route_id, user_id, tour_id, path.
-	addSprint = `INSERT INTO sprints (start_time, length_time, success, route_id, user_id, tour_id, path)
-    VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;`
+	// SQL запрос для добавления спринта по start_time, length_time, success, route_id, user_id, path.
+	addSprint = `INSERT INTO sprints (start_time, length_time, success, route_id, user_id, path)
+    VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;`
 	// SQL запрос для добавления соревнования по start_time, end_time, pswd, private.
 	addTour = `INSERT INTO tournaments (start_time, end_time, pswd, private) VALUES ($1, $2, $3, $4) RETURNING id;`
 	// SQL запрос для добавления маршрута в соревнование по tour_id, route_id.

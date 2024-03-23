@@ -75,9 +75,9 @@ func (d *dbProcessor) AddSprint(sprint models.Sprint) (int, error) {
 	defer tx.Rollback()
 
 	var id int
-
+	// path, _ := json.Marshal(sprint.Path)
 	if err = tx.QueryRow(addSprint, sprint.StartTime, sprint.LengthTime, sprint.Success,
-		sprint.RouteId, sprint.UserId, sprint.TournamentId, sprint.Path).Scan(&id); err != nil {
+		sprint.RouteId, sprint.UserId /*sprint.TournamentId,*/, sprint.Path).Scan(&id); err != nil {
 		return 0, errors.Join(wrapErr, err)
 	}
 
@@ -391,7 +391,6 @@ func (d *dbProcessor) GetRatings() ([]models.TourRating, error) {
 	wrapErr := errors.New("error while getting ratings from the database")
 
 	var routes []int
-
 	if err := d.db.Select(&routes, getRoutesIds); err != nil {
 		return []models.TourRating{}, errors.Join(wrapErr, err)
 	}
@@ -403,15 +402,13 @@ func (d *dbProcessor) GetRatings() ([]models.TourRating, error) {
 		if err := d.db.Select(&rr, getRouteBest, routes[i]); err != nil {
 			return []models.TourRating{}, errors.Join(wrapErr, err)
 		}
-
 		if len(rr) == 0 {
 			continue
 		}
 		sort.Slice(rr, func(i, j int) bool {
 			return rr[i].SprintLengthTime < rr[j].SprintLengthTime
 		})
-
-		min, id := rr[1].SprintLengthTime, 1
+		min, id := rr[0].SprintLengthTime, 1
 		for j := 1; j < len(rr); j++ {
 			if rr[j].SprintLengthTime < min {
 				min = rr[j].SprintLengthTime
@@ -476,13 +473,13 @@ func (d *dbProcessor) GetSprint(id int) (models.Sprint, error) {
 
 // GetUserHistory implements DbHandler.
 func (d *dbProcessor) GetUserHistory(id int) ([]models.Sprint, error) {
-	var user []models.Sprint
+	var history []models.Sprint
 
-	if err := d.db.Select(&user, getUserHistory, id); err != nil {
+	if err := d.db.Select(&history, getUserHistory, id); err != nil {
 		return []models.Sprint{}, errors.Join(errors.New("error while getting user's history from the database"), err)
 	}
 
-	return user, nil
+	return history, nil
 }
 
 // GetUserRouteHistory implements DbHandler.

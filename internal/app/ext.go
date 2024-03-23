@@ -3,13 +3,30 @@ package app
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"html/template"
 
+	"github.com/famusovsky/WikiSurfBack/internal/models"
 	"github.com/gofiber/fiber/v2"
 )
 
 func (app *App) renderStartExt(c *fiber.Ctx) error {
 	return c.Render("ext/start", fiber.Map{})
+}
+
+func (app *App) startRouteExt(c *fiber.Ctx) error {
+	wrapErr := errors.New("error while starting a route")
+
+	route, err := app.getOrCreateRoute(c, wrapErr, "#result")
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+
+	return c.Render("ext/startRoute", fiber.Map{
+		"rid":    route.Id,
+		"start":  route.Start,
+		"finish": route.Finish,
+	})
 }
 
 func (app *App) authExt(c *fiber.Ctx) error {
@@ -65,4 +82,21 @@ func (app *App) renderRoutesExt(c *fiber.Ctx) error {
 	return c.Render("partials/tourList", fiber.Map{
 		"tbody": b.String(),
 	})
+}
+
+func (app *App) addSprintExt(c *fiber.Ctx) error {
+	sprint := models.Sprint{}
+	wrapErr := errors.New("error while adding a sprint")
+
+	user, _ := app.getUser(c, wrapErr)
+	if err := c.BodyParser(&sprint); err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+	sprint.UserId = user.Id
+	id, err := app.db.AddSprint(sprint)
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+
+	return c.Redirect(fmt.Sprintf("/sprint/%d", id))
 }

@@ -35,8 +35,10 @@ func setRoutes(app *App) {
 	ext := app.web.Group("/ext", app.checkRegExt)
 	ext.Get("/", app.renderMainExt)
 	ext.Get("/start", app.renderStartExt)
+	ext.Post("/start", app.startRouteExt)
 	ext.Get("/routes", app.renderRoutesExt)
 	ext.Get("/tours", app.renderToursExt)
+	ext.Post("/sprint", app.addSprintExt)
 
 	base := app.web.Group("/", app.checkReg)
 	base.Get("/", app.renderMain)

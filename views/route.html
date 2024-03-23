@@ -1,4 +1,4 @@
-<script src="./static/htmx.min.js"></script>
+<script src="/static/htmx.min.js"></script>
 
 <body>
     <h2>Route {{.ind}}</h2>
@@ -19,9 +19,13 @@
         </tbody>
     </table>
 
-    <h4>
-        <a href={{.link}}>Start a sprint</a> <!-- TODO -->
-    </h4>
+    <form hx-post="/ext/start" hx-target="body">
+        <input type="hidden" id="start" name="start" value={{.start}} required>
+        <input type="hidden" id="finish" name="finish" value={{.finish}} required>
+        <button type="submit">Start a sprint</button>
+        <br>
+        <div id="result"></div>
+    </form>
 
     <table>
         <thead>

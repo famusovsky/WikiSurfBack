@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"math/rand"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -33,7 +34,7 @@ func (app *App) getRouteRating(c *fiber.Ctx) error {
 		Length string
 		Steps  string
 	}, len(ratings))
-	for i := range ratings {
+	for i := 0; i < len(ratings); i++ {
 		ratingsData[i].Id = ratings[i].SprintId
 
 		s := ratings[i].SprintLengthTime / 1000
@@ -194,7 +195,9 @@ func (app *App) createRoute(c *fiber.Ctx) error {
 		return app.errToResult(c, errors.Join(wrapErr, err))
 	}
 
-	// TODO check if route start and finish are wiki links
+	if r := regexp.MustCompile(`.*wikipedia\.org\/wiki\/[^\s"]+`); !(r.Match([]byte(route.Start)) && r.Match([]byte(route.Finish))) {
+		return app.errToResult(c, errors.Join(wrapErr, errors.New("input must be a wikipedia article link")))
+	}
 
 	route.CreatorId = user.Id
 	id, err := app.db.AddRoute(route)
@@ -320,21 +323,9 @@ func (app *App) addRouteToTour(c *fiber.Ctx) error {
 		return app.errToResult(c, errors.Join(wrapErr, err), "#routesResult")
 	}
 
-	route := models.Route{}
-	if err := c.BodyParser(&route); err != nil {
+	route, err := app.getOrCreateRoute(c, wrapErr, "#routesResult")
+	if err != nil {
 		return app.errToResult(c, errors.Join(wrapErr, err), "#routesResult")
-	}
-	route.CreatorId = user.Id
-
-	if r, err := app.db.GetRouteByCreds(route.Start, route.Finish); err != nil {
-		// TODO check start and finish
-		if id, err := app.db.AddRoute(route); err != nil {
-			route.Id = id
-		} else {
-			return app.errToResult(c, errors.Join(wrapErr, err), "#routesResult")
-		}
-	} else {
-		route = r
 	}
 
 	if err := app.db.AddRouteToTour(models.TRRelation{
