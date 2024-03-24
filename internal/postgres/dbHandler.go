@@ -16,7 +16,7 @@ type DbHandler interface {
 	AddRouteToTour(tr models.TRRelation, userId int) error            // AddRouteToTour - добавление маршрута в соревнование.
 	RemoveRouteFromTour(tr models.TRRelation, userId int) error       // AddRouteToTour - удаление маршрута из соревнования.
 	AddUserToTour(tourId, userId int) error                           // AddUserToTour - добавление участника в соревнование.
-	RemoveUserFromTour(tourId, userId int) error                      // AddUserToTour - удаление участника из соревнования.
+	RemoveUserFromTour(tourId, userId int) error                      // RemoveUserFromTour - удаление участника из соревнования.
 	AddCreatorToTour(tu models.TURelation, userId int) error          // AddCreatorToTour - добавление создателя в соревнование.
 	RemoveCreatorFromTour(tu models.TURelation, userId int) error     // RemoveCreatorFromTour - удаление создателя из соревнования.
 	GetUser(email string) (models.User, error)                        // GetUser - получение пользователя по email-у
@@ -41,14 +41,17 @@ type DbHandler interface {
 	CheckTournamentParticipator(tourId, userId int) (bool, error)     // CheckTournamentParticipator - проверка на соответствие Id пользователя с Id участников соревнования.
 	UpdateTournament(tour models.Tournament, user int) error          // UpdateTournament - обновление основных данных о соревновании.
 	DeleteTournament(tourId, userId int) error                        // DeleteTournament - удаление данных о соревновании.
-	UpdateUser(user models.User) error                                // UpdateUser -  - обновление основных данных о пользователе.
+	UpdateUser(user models.User) error                                // UpdateUser - обновление основных данных о пользователе.
 }
 
 // Get - функция, возвращающая объект, реализующий интерфейс DbHandler.
-func Get(db *sql.DB, createTables bool) (DbHandler, error) {
-	if createTables {
-		err := overrideDB(db)
-		if err != nil {
+func Get(db *sql.DB, override bool) (DbHandler, error) {
+	if override {
+		if err := overrideDB(db); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := createTables(db); err != nil {
 			return nil, err
 		}
 	}

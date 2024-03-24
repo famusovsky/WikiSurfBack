@@ -83,6 +83,7 @@ func (app *App) getTourRating(c *fiber.Ctx) error {
 	return app.renderSimpleRating(c, ratings, wrapErr)
 }
 
+// getRating - функция, возвращяющая общий рейтинг.
 func (app *App) getRating(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting ratings in api")
 
@@ -94,6 +95,7 @@ func (app *App) getRating(c *fiber.Ctx) error {
 	return app.renderSimpleRating(c, ratings, wrapErr)
 }
 
+// updateUser - функция, обновляющая данные пользователя.
 func (app *App) updateUser(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while updating user")
 	user, _ := app.getUser(c, wrapErr)
@@ -127,6 +129,7 @@ func (app *App) updateUser(c *fiber.Ctx) error {
 	return app.renderSettings(c)
 }
 
+// participateViaId - функция, добавляющая пользователя в соревнование по id.
 func (app *App) participateViaId(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while adding user to tour")
 	user, _ := app.getUser(c, wrapErr)
@@ -144,7 +147,8 @@ func (app *App) participateViaId(c *fiber.Ctx) error {
 	return c.Next()
 }
 
-func (app *App) quitParticipateViaId(c *fiber.Ctx) error {
+// quitViaId - функция, удаляющая пользователя из соревнования по id.
+func (app *App) quitViaId(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while removing user from the tour")
 	user, _ := app.getUser(c, wrapErr)
 
@@ -161,6 +165,7 @@ func (app *App) quitParticipateViaId(c *fiber.Ctx) error {
 	return c.Next()
 }
 
+// participateViaPassword - функция, добавляющая пользователя в соревнование по паролю.
 func (app *App) participateViaPassword(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while adding user to tour")
 	user, _ := app.getUser(c, wrapErr)
@@ -185,6 +190,7 @@ func (app *App) participateViaPassword(c *fiber.Ctx) error {
 	return c.SendString(fmt.Sprintf("You are entered tour #%d", id))
 }
 
+// createRoute - функция, создающая маршрут.
 func (app *App) createRoute(c *fiber.Ctx) error {
 	route := models.Route{}
 	wrapErr := errors.New("error while creating route")
@@ -209,6 +215,7 @@ func (app *App) createRoute(c *fiber.Ctx) error {
 	return c.Redirect(fmt.Sprintf("/route/%d", id))
 }
 
+// createTour - функция, создающая соревнование.
 func (app *App) createTour(c *fiber.Ctx) error {
 	var pswd strings.Builder
 	getRand := func(out *strings.Builder) {
@@ -248,6 +255,7 @@ func (app *App) createTour(c *fiber.Ctx) error {
 	return c.Redirect(fmt.Sprintf("/tournament/edit/%d", id))
 }
 
+// updateTour - функция, обновляющая соревнование.
 func (app *App) updateTour(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while editing the tour")
 
@@ -288,6 +296,7 @@ func (app *App) updateTour(c *fiber.Ctx) error {
 	return c.Redirect(fmt.Sprintf("/tournament/edit/%d", id))
 }
 
+// deleteTour - функция, удаляющая соревнование.
 func (app *App) deleteTour(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while deleting the tour")
 
@@ -309,6 +318,7 @@ func (app *App) deleteTour(c *fiber.Ctx) error {
 	return c.Redirect("/tournaments")
 }
 
+// addRouteToTour - функция, добавляющая маршрут в соревнование.
 func (app *App) addRouteToTour(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while adding route to the tour")
 
@@ -338,6 +348,7 @@ func (app *App) addRouteToTour(c *fiber.Ctx) error {
 	return c.Redirect(fmt.Sprintf("/tournament/edit/%d", id))
 }
 
+// removeRouteFromTour - функция, удаляющая маршрут из соревнования.
 func (app *App) removeRouteFromTour(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while removing route from the tour")
 
@@ -374,6 +385,7 @@ func (app *App) removeRouteFromTour(c *fiber.Ctx) error {
 	return c.Redirect(fmt.Sprintf("/tournament/edit/%d", id))
 }
 
+// addCreatorToTour - функция, добавляющая создателя в соревнование.
 func (app *App) addCreatorToTour(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while adding creator to the tour")
 
@@ -410,6 +422,7 @@ func (app *App) addCreatorToTour(c *fiber.Ctx) error {
 	return c.Redirect(fmt.Sprintf("/tournament/edit/%d", id))
 }
 
+// removeCreatorFromTour - функция, удаляющая создателя из соревнования.
 func (app *App) removeCreatorFromTour(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while adding creator to the tour")
 

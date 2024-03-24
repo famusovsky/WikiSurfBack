@@ -2,6 +2,7 @@ package app
 
 // TODO получать роуты по названию и ссылку показывать тоже его
 
+// setRoutes - устанавливает маршрутизацию.
 func setRoutes(app *App) {
 	app.web.Static("/static", "./ui/static")
 
@@ -20,7 +21,7 @@ func setRoutes(app *App) {
 	service.Get("/tours/my", app.renderUserTournaments)
 	service.Get("/tours/created", app.renderCreatorTournaments)
 	service.Post("/tour/participate/:id", app.participateViaId, app.renderTournament)
-	service.Delete("/tour/participate/:id", app.quitParticipateViaId, app.renderTournament)
+	service.Delete("/tour/participate/:id", app.quitViaId, app.renderTournament)
 	service.Post("/tour/participate/", app.participateViaPassword)
 	service.Get("/tour/create", app.createTour)
 	service.Delete("/tour/:id", app.deleteTour)

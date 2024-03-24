@@ -14,7 +14,7 @@ import (
 
 func main() {
 	addr := flag.String("addr", ":8080", "HTTP address")
-	createTables := flag.Bool("create_tables", false, "Create tables in database")
+	overrideTables := flag.Bool("override_tables", false, "Override tables in database")
 	dsn := flag.String("dsn", "", "dsn for the db")
 	flag.Parse()
 
@@ -35,7 +35,7 @@ func main() {
 	}
 	defer db.Close()
 
-	DbHandler, err := postgres.Get(db, *createTables)
+	DbHandler, err := postgres.Get(db, *overrideTables)
 	if err != nil {
 		errorLog.Fatal(err)
 	}

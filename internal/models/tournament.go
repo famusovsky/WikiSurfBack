@@ -17,7 +17,7 @@ type TURelation struct {
 	UserId       int `json:"user_id" db:"user_id"` // UserId - id пользователя, участвующего в отношении.
 }
 
-// TURelation - структура, представляющая отношение между соревнованием и маршрутом.
+// TRRelation - структура, представляющая отношение между соревнованием и маршрутом.
 type TRRelation struct {
 	TournamentId int `json:"tour_id" db:"tour_id"`   // TournamentId - id соревнования, участвующего в отношении.
 	RouteId      int `json:"route_id" db:"route_id"` // RouteId - id маршрута, участвующего в отношении.

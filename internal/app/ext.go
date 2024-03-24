@@ -10,10 +10,12 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// renderStartExt - функция, производящая рендер страницы запуска спринта в расширении.
 func (app *App) renderStartExt(c *fiber.Ctx) error {
 	return c.Render("ext/start", fiber.Map{})
 }
 
+// startRouteExt - функция, запускающая прохождение спринта в расширении.
 func (app *App) startRouteExt(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while starting a route")
 
@@ -29,14 +31,17 @@ func (app *App) startRouteExt(c *fiber.Ctx) error {
 	})
 }
 
+// authExt - функция, проводящая авторизацию в расширении.
 func (app *App) authExt(c *fiber.Ctx) error {
 	return c.Render("ext/auth", fiber.Map{})
 }
 
+// renderMainExt - функция, производящая рендер главной страницы расширения.
 func (app *App) renderMainExt(c *fiber.Ctx) error {
 	return c.Render("ext/main", fiber.Map{})
 }
 
+// renderToursExt - функция, производящая рендер страницы соревнований в расширении.
 func (app *App) renderToursExt(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting user tours")
 	user, _ := app.getUser(c, wrapErr)
@@ -60,6 +65,7 @@ func (app *App) renderToursExt(c *fiber.Ctx) error {
 	})
 }
 
+// renderRoutesExt - функция, производящая рендер страницы маршрутов в расширении.
 func (app *App) renderRoutesExt(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting routes")
 
@@ -84,6 +90,7 @@ func (app *App) renderRoutesExt(c *fiber.Ctx) error {
 	})
 }
 
+// addSprintExt - функция, сохраняющая пройденный спринт.
 func (app *App) addSprintExt(c *fiber.Ctx) error {
 	sprint := models.Sprint{}
 	wrapErr := errors.New("error while adding a sprint")

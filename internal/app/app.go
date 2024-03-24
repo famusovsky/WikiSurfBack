@@ -12,7 +12,7 @@ import (
 	"github.com/gofiber/template/html/v2"
 )
 
-// App - структура, описывающая приложение.
+// App - структура, представляющая собой приложение.
 type App struct {
 	web     *fiber.App         // web - веб-приложение на основе фреймворка Fiber.
 	db      postgres.DbHandler // db - обработчик БД.

@@ -75,6 +75,7 @@ func (app *App) signIn(c *fiber.Ctx) error {
 	return c.Redirect("/")
 }
 
+// signIn - функция, позволяющая пользователю выйти из аккаунта.
 func (app *App) signOut(c *fiber.Ctx) error {
 	app.ch.Remove(c)
 

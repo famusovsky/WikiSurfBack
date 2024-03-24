@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/securecookie"
 )
 
-// cookieHandler - структура, заведующая куками.
+// cookieHandler - структура, хранящая данные и обрабатывающая Cookie.
 type cookieHandler struct {
 	instance *securecookie.SecureCookie
 }

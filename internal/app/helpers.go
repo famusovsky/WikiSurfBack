@@ -11,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// checkAuth - middleware, проверяющий авторизацию пользователя.
 func (app *App) checkReg(c *fiber.Ctx) error {
 	_, ok := app.getUser(c, errors.New("error while checking authorization"))
 	if !ok {
@@ -20,6 +21,7 @@ func (app *App) checkReg(c *fiber.Ctx) error {
 	return c.Next()
 }
 
+// checkAuthExt - middleware, проверяющий авторизацию пользователя в расширении.
 func (app *App) checkRegExt(c *fiber.Ctx) error {
 	_, ok := app.getUser(c, errors.New("error while checking authorization"))
 	if !ok {
@@ -46,6 +48,7 @@ func (app *App) getUser(c *fiber.Ctx, wrapErr error) (models.User, bool) {
 	return user, true
 }
 
+// sprintData - структура, хранящая полные данные о спринте.
 type sprintData struct {
 	Id         int
 	Start      string
@@ -55,6 +58,7 @@ type sprintData struct {
 	Steps      int
 }
 
+// getFullSprintData - функция, возвращающая полные данные о спринте.
 func (app *App) getFullSprintData(sprint models.Sprint) sprintData {
 	res := sprintData{}
 	res.Id = sprint.Id
@@ -77,6 +81,7 @@ func (app *App) getFullSprintData(sprint models.Sprint) sprintData {
 	return res
 }
 
+// getToursTable - функция, возвращающая html таблицу соревнований.
 func getToursTable(tours []models.Tournament) (string, error) {
 	var b bytes.Buffer
 	q := `{{range .}}<tr><td hx-get={{printf "/tournament/%d" .Id }} hx-target="body">{{.Id}}</td></tr>{{end}}`
@@ -89,6 +94,7 @@ func getToursTable(tours []models.Tournament) (string, error) {
 	return b.String(), nil
 }
 
+// errToResult - функция, встраивающая ошибку в поле #result.
 func (app *App) errToResult(c *fiber.Ctx, err error, name ...string) error {
 	result := "#result"
 	if len(name) != 0 {
@@ -99,6 +105,7 @@ func (app *App) errToResult(c *fiber.Ctx, err error, name ...string) error {
 	return c.SendString(err.Error())
 }
 
+// renderErr - функция, рендерящая страницу ошибки.
 func (app *App) renderErr(c *fiber.Ctx, status int, err error) error {
 	app.errLog.Println(err)
 	return c.Render("error", fiber.Map{
@@ -107,6 +114,7 @@ func (app *App) renderErr(c *fiber.Ctx, status int, err error) error {
 	}, "layouts/base")
 }
 
+// renderSimpleRating - функция, рендерящая простую таблицу рейтинга.
 func (app *App) renderSimpleRating(c *fiber.Ctx, ratings []models.TourRating, wrapErr error) error {
 	var b bytes.Buffer
 	q := `{{range .}}<tr><td>{{.UserName}}</td><td>{{.Points}}</td></tr>{{end}}`
@@ -118,6 +126,7 @@ func (app *App) renderSimpleRating(c *fiber.Ctx, ratings []models.TourRating, wr
 	return c.SendString(b.String())
 }
 
+// getOrCreateRoute - функция, возвращающая маршрут по запросу или создающая новый.
 func (app *App) getOrCreateRoute(c *fiber.Ctx, wrapErr error, resultAddr string) (models.Route, error) {
 	user, _ := app.getUser(c, wrapErr)
 

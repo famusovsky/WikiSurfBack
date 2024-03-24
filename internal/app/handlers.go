@@ -11,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// auth - функция, производящая авторизацию пользователя / рендер страницы аутентификации.
 func (app *App) auth(c *fiber.Ctx) error {
 	if c.Query("signin") != "" {
 		return app.signIn(c)
@@ -19,20 +20,24 @@ func (app *App) auth(c *fiber.Ctx) error {
 	return c.Render("auth/auth", fiber.Map{}, "layouts/mini")
 }
 
+// renderSignin - функция производящая рендер страницы входа.
 func (app *App) renderSignin(c *fiber.Ctx) error {
 	return c.Render("auth/signin", fiber.Map{})
 }
 
+// renderSignup - функция производящая рендер страницы регистрации.
 func (app *App) renderSignup(c *fiber.Ctx) error {
 	return c.Render("auth/signup", fiber.Map{})
 }
 
+// renderMain - функция производящая рендер главной страницы.
 func (app *App) renderMain(c *fiber.Ctx) error {
 	return c.Render("main", fiber.Map{
 		"ratingType": "/service/rating",
 	}, "layouts/base")
 }
 
+// renderProfile - функция производящая рендер страницы истории прохождений пользователя.
 func (app *App) renderHistory(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting users history")
 	user, _ := app.getUser(c, wrapErr)
@@ -73,6 +78,7 @@ func (app *App) renderHistory(c *fiber.Ctx) error {
 	}, "layouts/base")
 }
 
+// renderSettings - функция производящая рендер страницы настроек пользователя.
 func (app *App) renderSettings(c *fiber.Ctx) error {
 	usr, _ := app.getUser(c, errors.New(""))
 	return c.Render("settings", fiber.Map{
@@ -81,6 +87,7 @@ func (app *App) renderSettings(c *fiber.Ctx) error {
 	}, "layouts/base")
 }
 
+// renderRoutes - функция производящая рендер страницы спринта.
 func (app *App) renderSprint(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting sprint data")
 	id, err := strconv.Atoi(c.Params("id"))
@@ -151,6 +158,7 @@ func (app *App) renderSprint(c *fiber.Ctx) error {
 	}, "layouts/base")
 }
 
+// renderRoute - функция производящая рендер страницы маршрута.
 func (app *App) renderRoute(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting a route")
 	id, err := strconv.Atoi(c.Params("id"))
@@ -172,10 +180,12 @@ func (app *App) renderRoute(c *fiber.Ctx) error {
 	}, "layouts/base")
 }
 
+// renderTournaments - функция производящая рендер страницы соревнований.
 func (app *App) renderTournaments(c *fiber.Ctx) error {
 	return c.Render("tournaments", fiber.Map{}, "layouts/base")
 }
 
+// renderCreateTour - функция производящая рендер страницы открытых соревнований.
 func (app *App) renderOpenedTournaments(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting opened tours")
 	tours, err := app.db.GetOpenTournaments()
@@ -193,6 +203,7 @@ func (app *App) renderOpenedTournaments(c *fiber.Ctx) error {
 	})
 }
 
+// renderUserTournaments - функция производящая рендер страницы соревнований пользователя.
 func (app *App) renderUserTournaments(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting user tours")
 	user, _ := app.getUser(c, wrapErr)
@@ -212,6 +223,7 @@ func (app *App) renderUserTournaments(c *fiber.Ctx) error {
 	})
 }
 
+// renderCreatorTournaments - функция производящая рендер страницы соревнований созданных пользователем.
 func (app *App) renderCreatorTournaments(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting creator tours")
 	user, _ := app.getUser(c, wrapErr)
@@ -231,6 +243,7 @@ func (app *App) renderCreatorTournaments(c *fiber.Ctx) error {
 	})
 }
 
+// renderCreateTour - функция производящая рендер страницы соревнования.
 func (app *App) renderTournament(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting tour")
 	user, _ := app.getUser(c, errors.New("error while getting user"))
@@ -318,6 +331,7 @@ func (app *App) renderTournament(c *fiber.Ctx) error {
 	}, "layouts/base")
 }
 
+// renderCreateTour - функция производящая рендер страницы создания соревнования.
 func (app *App) renderEditTour(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while rendering tour editor")
 
