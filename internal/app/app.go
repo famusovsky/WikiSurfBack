@@ -4,8 +4,6 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
 
 	"github.com/famusovsky/WikiSurfBack/internal/postgres"
 	"github.com/gofiber/fiber/v2"
@@ -27,7 +25,7 @@ type App struct {
 //
 // Возвращает: приложение.
 func CreateApp(db postgres.DbHandler, infoLog, errLog *log.Logger) *App {
-	engine := html.New("./views", ".html")
+	engine := html.New("./ui/views", ".html")
 	engine.AddFunc(
 		"unescape", func(s string) template.HTML {
 			return template.HTML(s)
@@ -48,7 +46,7 @@ func CreateApp(db postgres.DbHandler, infoLog, errLog *log.Logger) *App {
 	result := &App{
 		web:     application,
 		db:      db,
-		ch:      getCookieHandler(),
+		ch:      getCookieHandler("user-info", "email"),
 		infoLog: infoLog,
 		errLog:  errLog,
 	}
@@ -62,21 +60,10 @@ func CreateApp(db postgres.DbHandler, infoLog, errLog *log.Logger) *App {
 //
 // Принимает: адрес.
 func (app *App) Run(addr string) {
-	gracefully := make(chan struct{})
-	go func() {
-		sigint := make(chan os.Signal, 1)
-		signal.Notify(sigint, os.Interrupt)
-		<-sigint
+	go app.errLog.Fatalln(app.web.Listen(addr))
+}
 
-		if err := app.web.Shutdown(); err != nil {
-			app.errLog.Printf("Error while shutting down the server: %v", err)
-		} else {
-			app.infoLog.Printf("App closed gracefully\n")
-		}
-
-		close(gracefully)
-	}()
-
-	app.infoLog.Printf("App started on adress\n")
-	app.errLog.Fatalln(app.web.Listen(addr))
+// Shutdown - изящное отключение сервера.
+func (app *App) Shutdown() error {
+	return app.web.Shutdown()
 }

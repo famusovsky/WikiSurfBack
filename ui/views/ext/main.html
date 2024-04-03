@@ -1,0 +1,10 @@
+<header>
+    <h2><a href={{.baseUrl}} target="_blank">WikiSurf</a></h2>
+    <nav>
+    <button hx-get={{printf "%s/ext/start" .baseUrl }} hx-target="#target">Start</button>
+    <button hx-get={{printf "%s/ext/routes" .baseUrl }} hx-target="#target">Routes</button>
+    <button hx-get={{printf "%s/ext/tours" .baseUrl }} hx-target="#target">Tours</button>
+    </nav>
+</header>
+
+<div id="target"></div>

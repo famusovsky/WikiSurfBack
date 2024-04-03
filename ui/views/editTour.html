@@ -1,0 +1,77 @@
+<script src="/static/htmx.min.js"></script>
+
+<body>
+    <h2>Tournament {{.ind}}</h2>
+
+    <h4><div>Password: {{.password}}</div></h4>
+
+    <form hx-put={{printf "/service/tour/%s" .ind }} hx-target="body">
+        <label for="begin">Start time: {{.start}}</label>
+        <input type="datetime-local" id="begin" name="begin">
+        <label for="end">End time: {{.end}}</label>
+        <input type="datetime-local" id="end" name="end">
+        <br>
+        <button type="submit" hx-confirm="Are you sure?">Update time range</button>
+    </form> <!-- TODO timezone | only normal way I see is to set it in user settings -->
+
+    <div>
+        <button hx-post={{printf "/service/tour/%s/privacy" .ind }} hx-target="body">Toggle tour privacy: currently <strong>{{if .privacy}}Private{{else}}Open{{end}}</strong></button>
+    </div>
+
+    <div id="result"></div>
+
+    <table>
+        <thead><tr>
+            <th>Creator's Name</th>
+            <th>Email</th>
+        </tr></thead>
+
+        <tbody id="creatorsTbody">
+            {{ unescape .creatorsTbody}}
+        </tbody>
+    </table>
+
+    <div id="creatorResult"></div>
+
+    <p>
+        <label for="email">Email</label>
+        <input type="text" id="email" name="email" required>
+        <div hx-include="[name='email']">
+            <button hx-put={{printf "/service/tour/%s/creator" .ind }} hx-target="body">Add</button>
+            <button hx-delete={{printf "/service/tour/%s/creator" .ind }} hx-target="body">Remove</button>
+        </div>
+        <br>
+    </p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Route</th>
+                <th>Start article</th>
+                <th>Finish article</th>
+            </tr>
+        </thead>
+
+        <tbody id="routesTbody">
+            {{ unescape .routesTbody}}
+        </tbody>
+    </table>
+
+    <div id="routesResult"></div>
+
+    <p>
+        <label for="start">Start article:</label>
+        <input type="url" id="start" name="start" required>
+        <label for="finish">Finish article:</label>
+        <input type="url" id="finish" name="finish" required>
+        <div hx-include="[name='start'],[name='finish']">
+            <button hx-put={{printf "/service/tour/%s/route" .ind }} hx-target="body" >Add</button>
+            <button hx-delete={{printf "/service/tour/%s/route" .ind }} hx-target="body">Remove</button>
+        </div>
+    </p>
+
+    <button hx-delete={{printf "/service/tour/%s" .ind }} hx-confirm="Are you sure?" hx-target="body">
+        Delete the tour
+    </button>
+</body>
+    

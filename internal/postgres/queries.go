@@ -93,7 +93,7 @@ const (
 	// SQL запрос для получения истории спринтов пользователя по user.Email, route.Id.
 	getUserRouteHistory = `SELECT * FROM sprints WHERE user_id = $1 AND route_id = $2;`
 	// SQL запрос для получения открытых соревнований.
-	getOpenTournaments = `SELECT * FROM tournaments WHERE private = false AND end_time < $1;`
+	getOpenTournaments = `SELECT * FROM tournaments WHERE private = false AND end_time > $1;`
 	// SQL запрос для получения соревнований по user.Id.
 	getUserTournaments = `SELECT * FROM tournaments WHERE id IN (
         SELECT tour_id FROM tournament_users WHERE user_id = $1
@@ -103,7 +103,7 @@ const (
         SELECT tour_id FROM tournament_creators WHERE user_id = $1
     );`
 	// SQL запрос для получения маршрутов соревнования по tournament.Id.
-	getTournamentRoutes = `SELECT id FROM routes WHERE id IN (
+	getTournamentRoutes = `SELECT * FROM routes WHERE id IN (
         SELECT route_id FROM tournament_routes WHERE tour_id = $1
     );`
 	// SQL запрос для получения маршрутов.
@@ -123,12 +123,12 @@ const (
       FROM sprints WHERE success = true AND route_id = $1
       GROUP BY user_id
     ) AS min_times ON s.user_id = min_times.user_id AND s.length_time = min_times.min_length_time;`
-	// SQL запрос для получения данных о лучших результатах спринтов (length_time, path, user_id, spring_id) в соревовании и маршруте по route.Id, tour.Id.
-	getRouteTourBest = `SELECT DISTINCT ON (s.user_id) s.length_time, s.path, s.user_id, s.id
+	// SQL запрос для получения данных о лучших результатах спринтов (length_time, path, user_id, spring_id) в соревовании и маршруте по route.Id, start time, end time.
+	getRouteTourBest = `SELECT DISTINCT ON (s.user_id) s.length_time, s.path, s.user_id, s.id AS sprint_id
     FROM sprints s INNER JOIN (
       SELECT user_id, MIN(length_time) AS min_length_time
-      FROM sprints WHERE success = true AND route_id = $1 AND tour_id = $2
-      GROUP BY user_id
+      FROM sprints WHERE success = true AND route_id = $1 AND start_time > $2 AND start_time < $3
+	  GROUP BY user_id
     ) AS min_times ON s.user_id = min_times.user_id AND s.length_time = min_times.min_length_time;`
 	// SQL запрос для получения данных о маршруте по id.
 	getRoute = `SELECT * FROM routes WHERE id = $1;`

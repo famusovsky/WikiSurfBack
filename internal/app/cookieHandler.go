@@ -11,33 +11,29 @@ import (
 
 // cookieHandler - структура, хранящая данные и обрабатывающая Cookie.
 type cookieHandler struct {
-	instance *securecookie.SecureCookie
+	instance  *securecookie.SecureCookie
+	name, val string
 }
 
-const (
-	cookieName = "user-info"
-	valName    = "email"
-)
-
 // getCookieHandler - функция, возвращающая cookieHandler.
-func getCookieHandler() cookieHandler {
+func getCookieHandler(cookie, val string) cookieHandler {
 	hashKey, blockKey := make([]byte, 32), make([]byte, 16)
 	rand.Read(hashKey)
 	rand.Read(blockKey)
 
 	var s = securecookie.New(hashKey, blockKey)
-	return cookieHandler{s}
+	return cookieHandler{s, cookie, val}
 }
 
-// Set - функция, устанавливающая в http.Response куки, содержащий email пользователя.
+// Set - функция, устанавливающая в http.Response куки с данным именем и значением.
 func (c *cookieHandler) Set(ctx *fiber.Ctx, email string) {
 	value := map[string]string{
-		valName: email,
+		c.val: email,
 	}
-	if encoded, err := c.instance.Encode(cookieName, value); err == nil {
+	if encoded, err := c.instance.Encode(c.name, value); err == nil {
 		now := time.Now()
 		cookie := &fiber.Cookie{
-			Name:    cookieName,
+			Name:    c.name,
 			Value:   encoded,
 			Path:    "/",
 			Secure:  true,
@@ -47,21 +43,21 @@ func (c *cookieHandler) Set(ctx *fiber.Ctx, email string) {
 	}
 }
 
-// Read - функция, получающая из куки http.Request email пользователя.
+// Read - функция, получающая из http.Request данное значение куки с данным именем.
 func (c *cookieHandler) Read(ctx *fiber.Ctx) (string, error) {
-	cookie := string(ctx.Request().Header.Cookie(cookieName))
+	cookie := string(ctx.Request().Header.Cookie(c.name))
 
 	if cookie != "" {
 		value := make(map[string]string)
-		if err := c.instance.Decode(cookieName, cookie, &value); err == nil {
-			return value[valName], nil
+		if err := c.instance.Decode(c.name, cookie, &value); err == nil {
+			return value[c.val], nil
 		}
 	}
 
 	return "", errors.New("cannot read cookie")
 }
 
-// Remove - функция, удаляющая куки, содержащий email пользователя.
+// Remove - функция, удаляющая куки с данным именем.
 func (c *cookieHandler) Remove(ctx *fiber.Ctx) {
-	ctx.ClearCookie(cookieName)
+	ctx.ClearCookie(c.name)
 }

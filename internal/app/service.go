@@ -35,6 +35,9 @@ func (app *App) getRouteRating(c *fiber.Ctx) error {
 		Steps  string
 	}, len(ratings))
 	for i := 0; i < len(ratings); i++ {
+		sprint, _ := app.db.GetSprint(ratings[i].SprintId) // FIXME get route ratings directly from db
+		data := app.getFullSprintData(sprint)
+
 		ratingsData[i].Id = ratings[i].SprintId
 
 		s := ratings[i].SprintLengthTime / 1000
@@ -43,7 +46,7 @@ func (app *App) getRouteRating(c *fiber.Ctx) error {
 		s = min % 60
 		ratingsData[i].Length = fmt.Sprintf("%d min, %d s, %d ms", min, s, ms)
 
-		ratingsData[i].Steps = strconv.Itoa(ratings[i].SprintLengthSteps)
+		ratingsData[i].Steps = strconv.Itoa(data.Steps)
 
 		usr, err := app.db.GetUserById(ratings[i].UserId)
 		if err != nil {
@@ -271,7 +274,7 @@ func (app *App) updateTour(c *fiber.Ctx) error {
 	}
 
 	times := struct {
-		Start string
+		Begin string
 		End   string
 	}{}
 	if err := c.BodyParser(&times); err != nil {
@@ -282,13 +285,37 @@ func (app *App) updateTour(c *fiber.Ctx) error {
 	if err != nil {
 		return app.errToResult(c, errors.Join(wrapErr, err))
 	}
-	if t, err := time.Parse("2006-01-02T15:04:00Z", times.Start+":00Z"); err == nil && !t.IsZero() {
+	if t, err := time.Parse("2006-01-02T15:04:00Z", times.Begin+":00Z"); err == nil && !t.IsZero() {
 		tour.StartTime = t
 	}
 	if t, err := time.Parse("2006-01-02T15:04:00Z", times.End+":00Z"); err == nil && !t.IsZero() {
 		tour.EndTime = t
 	}
 
+	if err := app.db.UpdateTournament(tour, user.Id); err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+
+	return c.Redirect(fmt.Sprintf("/tournament/edit/%d", id))
+}
+
+// toggleTourPrivacy - функция изменяющая значение приватности соревнования.
+func (app *App) toggleTourPrivace(c *fiber.Ctx) error {
+	wrapErr := errors.New("error while toggling tour privacy")
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+	user, _ := app.getUser(c, wrapErr)
+	ok, err := app.db.CheckTournamentCreator(id, user.Id)
+	if !ok || err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+	tour, err := app.db.GetTournament(id)
+	if err != nil {
+		return app.errToResult(c, errors.Join(wrapErr, err))
+	}
+	tour.Private = !tour.Private
 	if err := app.db.UpdateTournament(tour, user.Id); err != nil {
 		return app.errToResult(c, errors.Join(wrapErr, err))
 	}

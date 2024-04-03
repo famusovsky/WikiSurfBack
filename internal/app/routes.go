@@ -8,6 +8,7 @@ func setRoutes(app *App) {
 
 	auth := app.web.Group("/auth")
 	auth.Get("/", app.auth)
+	auth.Put("/", app.signIn)
 	auth.Post("/", app.signUp)
 	auth.Delete("/", app.signOut)
 	auth.Get("/signin", app.renderSignin)
@@ -30,6 +31,7 @@ func setRoutes(app *App) {
 	service.Put("/tour/:id/creator", app.addCreatorToTour)
 	service.Delete("/tour/:id/creator", app.removeCreatorFromTour)
 	service.Put("/tour/:id", app.updateTour)
+	service.Post("/tour/:id/privacy", app.toggleTourPrivace)
 	service.Post("/route/create", app.createRoute)
 
 	app.web.Get("/ext/auth", app.authExt)
@@ -42,13 +44,14 @@ func setRoutes(app *App) {
 	ext.Post("/sprint", app.addSprintExt)
 
 	base := app.web.Group("/", app.checkReg)
-	base.Get("/", app.renderMain)
+	base.All("/", app.renderMain)
 	base.Get("/history", app.renderHistory)
 	base.Get("/settings", app.renderSettings)
 	base.Put("/service/user", app.updateUser)
 	base.Get("/sprint/:id", app.renderSprint)
 	base.Get("/route/:id", app.renderRoute)
 	base.Get("/tournaments", app.renderTournaments)
-	base.Get("/tournament/:id", app.renderTournament)
+	base.Get("/tournament/:id", app.renderTournament) // do not show if tour is private and user not participates or creates
 	base.All("/tournament/edit/:id", app.renderEditTour)
+	base.Get("favicon.ico", app.favicon)
 }

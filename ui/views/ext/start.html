@@ -1,11 +1,9 @@
-<h2>Main screen</h2>
-
-<form hx-post="http://127.0.0.1:8080/ext/start" hx-target="body">
+<form hx-post={{printf "%s/ext/start" .baseUrl }} hx-target="body">
     <label for="start">Start article:</label>
     <input type="text" id="start" name="start" required>
     <label for="finish">Finish article:</label>
     <input type="text" id="finish" name="finish" required>
-    <button type="submit">Start a route</button>
+    <button type="submit">Start a sprint</button>
     <br>
 </form>
     

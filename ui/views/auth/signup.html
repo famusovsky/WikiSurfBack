@@ -1,12 +1,16 @@
 <script src="htmx.min.js"></script>
 <body>
-    <form method="post">
+    <p hx-include="find input">
         <label for="name">Name</label>
         <input type="text" id="name" name="name" required>
         <label for="email">Email</label>
-        <input type="text" id="email" name="email" required>
+        <input type="email" id="email" name="email" required>
         <label for="password">Password</label>
         <input type="password" id="password" name="password" required>
-        <button type="submit">Ok</button>
-    </form>
+        <button hx-post="/auth" hx-include="[name='name'],[name='email'],[name='password']" hx-target="#result">
+            Ok
+        </button>
+    </p>
+
+    <div id="result"></div>
 </body>

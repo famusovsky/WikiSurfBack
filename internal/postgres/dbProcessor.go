@@ -330,12 +330,17 @@ func (d *dbProcessor) GetRouteRatings(routeId int) ([]models.RouteRating, error)
 }
 
 // GetTournamentRatings implements DbHandler.
-func (d *dbProcessor) GetTournamentRatings(tour int) ([]models.TourRating, error) {
+func (d *dbProcessor) GetTournamentRatings(tourId int) ([]models.TourRating, error) {
 	wrapErr := errors.New("error while getting tournament ratings from the database")
 
-	var routes []int
+	var routes []models.Route
 
-	if err := d.db.Select(&routes, getTournamentRoutes, tour); err != nil {
+	if err := d.db.Select(&routes, getTournamentRoutes, tourId); err != nil {
+		return []models.TourRating{}, errors.Join(wrapErr, err)
+	}
+
+	tour, err := d.GetTournament(tourId)
+	if err != nil {
 		return []models.TourRating{}, errors.Join(wrapErr, err)
 	}
 
@@ -343,7 +348,7 @@ func (d *dbProcessor) GetTournamentRatings(tour int) ([]models.TourRating, error
 	for i := 0; i < len(routes); i++ {
 		var rr []models.RouteRating
 
-		if err := d.db.Select(&rr, getRouteTourBest, routes[i], tour); err != nil {
+		if err := d.db.Select(&rr, getRouteTourBest, routes[i].Id, tour.StartTime, tour.EndTime); err != nil {
 			return []models.TourRating{}, errors.Join(wrapErr, err)
 		}
 
@@ -355,7 +360,7 @@ func (d *dbProcessor) GetTournamentRatings(tour int) ([]models.TourRating, error
 			return rr[i].SprintLengthTime < rr[j].SprintLengthTime
 		})
 
-		min, id := rr[1].SprintLengthTime, 1
+		min, id := rr[0].SprintLengthTime, rr[0].UserId
 		for j := 1; j < len(rr); j++ {
 			if rr[j].SprintLengthTime < min {
 				min = rr[j].SprintLengthTime
@@ -380,7 +385,7 @@ func (d *dbProcessor) GetTournamentRatings(tour int) ([]models.TourRating, error
 	}
 
 	sort.Slice(ratings, func(i, j int) bool {
-		return ratings[i].Points < ratings[j].Points
+		return ratings[i].Points > ratings[j].Points
 	})
 
 	return ratings, nil
@@ -408,7 +413,7 @@ func (d *dbProcessor) GetRatings() ([]models.TourRating, error) {
 		sort.Slice(rr, func(i, j int) bool {
 			return rr[i].SprintLengthTime < rr[j].SprintLengthTime
 		})
-		min, id := rr[0].SprintLengthTime, 1
+		min, id := rr[0].SprintLengthTime, rr[0].UserId
 		for j := 1; j < len(rr); j++ {
 			if rr[j].SprintLengthTime < min {
 				min = rr[j].SprintLengthTime
@@ -433,7 +438,7 @@ func (d *dbProcessor) GetRatings() ([]models.TourRating, error) {
 	}
 
 	sort.Slice(ratings, func(i, j int) bool {
-		return ratings[i].Points < ratings[j].Points
+		return ratings[i].Points > ratings[j].Points
 	})
 
 	return ratings, nil

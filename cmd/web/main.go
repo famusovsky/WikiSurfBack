@@ -3,14 +3,20 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"fmt"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/famusovsky/WikiSurfBack/internal/app"
 	"github.com/famusovsky/WikiSurfBack/internal/postgres"
 	"github.com/famusovsky/WikiSurfBack/pkg/database"
 	_ "github.com/lib/pq"
+	"golang.org/x/sync/errgroup"
 )
+
+// TODO add names to tours
 
 func main() {
 	addr := flag.String("addr", ":8080", "HTTP address")
@@ -21,6 +27,7 @@ func main() {
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	errorLog := log.New(os.Stdout, "ERR\t", log.Ldate|log.Ltime)
 
+	// XXX
 	*dsn = "postgres://postgres:qwerty@localhost:8888/postgres?sslmode=disable"
 
 	var db *sql.DB
@@ -42,5 +49,21 @@ func main() {
 
 	app := app.CreateApp(DbHandler, infoLog, errorLog)
 
+	sigQuit := make(chan os.Signal, 2)
+	signal.Notify(sigQuit, syscall.SIGINT, syscall.SIGTERM)
+	eg := new(errgroup.Group)
+
+	eg.Go(func() error {
+		select {
+		case s := <-sigQuit:
+			return fmt.Errorf("captured signal: %v", s)
+		}
+	})
+
 	app.Run(*addr)
+
+	if err := eg.Wait(); err != nil {
+		infoLog.Printf("gracefully shutting down the server: %v\n", err)
+		app.Shutdown()
+	}
 }

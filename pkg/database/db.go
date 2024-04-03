@@ -32,7 +32,6 @@ func OpenViaDsn(dsn string, driver string) (*sql.DB, error) {
 	return db, nil
 }
 
-// XXX // postgres://postgres:qwerty@localhost:8888/postgres?sslmode=disable
 // getDsnFromEnv - получение строки DSN из переменных окружения.
 func getDsnFromEnv(driver string) string {
 	dsn := fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=disable", driver,

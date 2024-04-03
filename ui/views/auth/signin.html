@@ -1,0 +1,13 @@
+<script src="/static/htmx.min.js"></script>
+<body>
+    <p>
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required>
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required>
+        <button hx-put="/auth" hx-include="[name='email'],[name='password']" hx-target="#result">Ok</button>
+    </p>
+
+    <div id="result"></div>
+</body>
+    

@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"html/template"
 	"strconv"
 	"sync"
@@ -13,10 +14,6 @@ import (
 
 // auth - функция, производящая авторизацию пользователя / рендер страницы аутентификации.
 func (app *App) auth(c *fiber.Ctx) error {
-	if c.Query("signin") != "" {
-		return app.signIn(c)
-	}
-
 	return c.Render("auth/auth", fiber.Map{}, "layouts/mini")
 }
 
@@ -87,7 +84,7 @@ func (app *App) renderSettings(c *fiber.Ctx) error {
 	}, "layouts/base")
 }
 
-// renderRoutes - функция производящая рендер страницы спринта.
+// renderSprint - функция производящая рендер страницы спринта.
 func (app *App) renderSprint(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while getting sprint data")
 	id, err := strconv.Atoi(c.Params("id"))
@@ -171,12 +168,27 @@ func (app *App) renderRoute(c *fiber.Ctx) error {
 		return app.renderErr(c, fiber.StatusNotFound, errors.Join(wrapErr, err))
 	}
 
+	var place string
+	user, _ := app.getUser(c, wrapErr)
+
+	if rating, err := app.db.GetRouteRatings(id); err == nil {
+		for i := 0; i < len(rating); i++ {
+			if rating[i].UserId == user.Id {
+				place = strconv.Itoa(i + 1)
+				break
+			}
+		}
+	} else {
+		place = "Unknown"
+	}
+
 	return c.Render("route", fiber.Map{
+		"place":      place,
 		"ind":        c.Params("id"),
 		"start":      route.Start,
 		"finish":     route.Finish,
-		"link":       route.Start, // FIXME сделать конпкой с хедерами
-		"ratingType": "/service/rating/route/" + c.Params("id"),
+		"link":       route.Start, // FIXME сделать нормальной кнопкой
+		"ratingType": fmt.Sprintf("/service/rating/route/%s", c.Params("id")),
 	}, "layouts/base")
 }
 
@@ -399,5 +411,10 @@ func (app *App) renderEditTour(c *fiber.Ctx) error {
 		"routesTbody":   routesTbody.String(),
 		"creatorsTbody": creatorsTbody.String(),
 		"password":      tour.Pswd,
+		"privacy":       tour.Private,
 	}, "layouts/base")
+}
+
+func (app *App) favicon(c *fiber.Ctx) error {
+	return c.SendFile("ui/static/favicon.ico")
 }

@@ -106,12 +106,16 @@ func (app *App) errToResult(c *fiber.Ctx, err error, name ...string) error {
 }
 
 // renderErr - функция, рендерящая страницу ошибки.
-func (app *App) renderErr(c *fiber.Ctx, status int, err error) error {
+func (app *App) renderErr(c *fiber.Ctx, status int, err error, layout ...string) error {
+	l := "layouts/base"
+	if len(layout) != 0 {
+		l = layout[0]
+	}
 	app.errLog.Println(err)
 	return c.Render("error", fiber.Map{
 		"status":  status,
 		"errText": err.Error(),
-	}, "layouts/base")
+	}, l)
 }
 
 // renderSimpleRating - функция, рендерящая простую таблицу рейтинга.
@@ -133,6 +137,9 @@ func (app *App) getOrCreateRoute(c *fiber.Ctx, wrapErr error, resultAddr string)
 	route := models.Route{}
 	if err := c.BodyParser(&route); err != nil {
 		return models.Route{}, app.errToResult(c, errors.Join(wrapErr, err), resultAddr)
+	}
+	if route.Start == "" || route.Finish == "" {
+		return models.Route{}, errors.Join(wrapErr, errors.New("empty input"))
 	}
 	route.CreatorId = user.Id
 
