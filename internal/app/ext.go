@@ -115,5 +115,5 @@ func (app *App) addSprintExt(c *fiber.Ctx) error {
 		return app.errToResult(c, errors.Join(wrapErr, err))
 	}
 
-	return c.Redirect(fmt.Sprintf("/sprint/%d", id))
+	return c.SendString(fmt.Sprintf("%s/sprint/%d", c.BaseURL(), id))
 }
