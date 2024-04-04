@@ -35,7 +35,7 @@ func (app *App) getRouteRating(c *fiber.Ctx) error {
 		Steps  string
 	}, len(ratings))
 	for i := 0; i < len(ratings); i++ {
-		sprint, _ := app.db.GetSprint(ratings[i].SprintId) // FIXME get route ratings directly from db
+		sprint, _ := app.db.GetSprint(ratings[i].SprintId) // TODO get route ratings directly from db
 		data := app.getFullSprintData(sprint)
 
 		ratingsData[i].Id = ratings[i].SprintId

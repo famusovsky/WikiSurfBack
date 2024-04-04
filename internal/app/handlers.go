@@ -119,7 +119,6 @@ func (app *App) renderSprint(c *fiber.Ctx) error {
 		if err := t.Execute(b, sprint.Path); err != nil {
 			e[1] = err
 		}
-		app.infoLog.Println(b.String())
 		wg.Done()
 	}(&stepsTbody, &wg, errs)
 
@@ -187,7 +186,7 @@ func (app *App) renderRoute(c *fiber.Ctx) error {
 		"ind":        c.Params("id"),
 		"start":      route.Start,
 		"finish":     route.Finish,
-		"link":       route.Start, // FIXME сделать нормальной кнопкой
+		"link":       route.Start,
 		"ratingType": fmt.Sprintf("/service/rating/route/%s", c.Params("id")),
 	}, "layouts/base")
 }
