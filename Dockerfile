@@ -3,7 +3,7 @@ FROM golang:1.22.1-alpine
 WORKDIR /
 
 ARG override_tables=false
-ARG port=8888
+ARG port=8080
 
 ENV OVERRIDE=$override_tables
 ENV PORT=$port
