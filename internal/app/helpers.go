@@ -131,27 +131,30 @@ func (app *App) renderSimpleRating(c *fiber.Ctx, ratings []models.TourRating, wr
 }
 
 // getOrCreateRoute - функция, возвращающая маршрут по запросу или создающая новый.
-func (app *App) getOrCreateRoute(c *fiber.Ctx, wrapErr error, resultAddr string) (models.Route, error) {
+func (app *App) getOrCreateRoute(c *fiber.Ctx) (models.Route, error) {
+	wrapErr := errors.New("error while getting route data")
 	user, _ := app.getUser(c, wrapErr)
 
 	route := models.Route{}
 	if err := c.BodyParser(&route); err != nil {
-		return models.Route{}, app.errToResult(c, errors.Join(wrapErr, err), resultAddr)
+		return models.Route{}, errors.Join(wrapErr, err)
 	}
 	if route.Start == "" || route.Finish == "" {
 		return models.Route{}, errors.Join(wrapErr, errors.New("empty input"))
 	}
+	if route.Start == route.Finish {
+		return models.Route{}, errors.Join(wrapErr, errors.New("start and finish must be different"))
+	}
+	if r := regexp.MustCompile(`.*wikipedia\.org\/wiki\/[^\s"]+`); !(r.Match([]byte(route.Start)) && r.Match([]byte(route.Finish))) {
+		return models.Route{}, errors.Join(wrapErr, errors.New("input must be a wikipedia article link"))
+	}
 	route.CreatorId = user.Id
 
 	if r, err := app.db.GetRouteByCreds(route.Start, route.Finish); err != nil {
-		if r := regexp.MustCompile(`.*wikipedia\.org\/wiki\/[^\s"]+`); !(r.Match([]byte(route.Start)) && r.Match([]byte(route.Finish))) {
-			return models.Route{}, app.errToResult(c, errors.Join(wrapErr, errors.New("input must be a wikipedia article link")))
-		}
-
-		if id, err := app.db.AddRoute(route); err != nil {
+		if id, err := app.db.AddRoute(route); err == nil {
 			route.Id = id
 		} else {
-			return models.Route{}, app.errToResult(c, errors.Join(wrapErr, err), resultAddr)
+			return models.Route{}, errors.Join(wrapErr, err)
 		}
 	} else {
 		route = r

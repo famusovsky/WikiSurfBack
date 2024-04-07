@@ -360,7 +360,7 @@ func (app *App) addRouteToTour(c *fiber.Ctx) error {
 		return app.errToResult(c, errors.Join(wrapErr, err), "#routesResult")
 	}
 
-	route, err := app.getOrCreateRoute(c, wrapErr, "#routesResult")
+	route, err := app.getOrCreateRoute(c)
 	if err != nil {
 		return app.errToResult(c, errors.Join(wrapErr, err), "#routesResult")
 	}

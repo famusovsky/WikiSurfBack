@@ -21,7 +21,7 @@ func (app *App) renderStartExt(c *fiber.Ctx) error {
 func (app *App) startRouteExt(c *fiber.Ctx) error {
 	wrapErr := errors.New("error while starting a route")
 
-	route, err := app.getOrCreateRoute(c, wrapErr, "#result")
+	route, err := app.getOrCreateRoute(c)
 	if err != nil {
 		return app.errToResult(c, errors.Join(wrapErr, err))
 	}

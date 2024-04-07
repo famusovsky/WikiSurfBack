@@ -5,13 +5,13 @@
 
     <h4><div>Password: {{.password}}</div></h4>
 
-    <form hx-put={{printf "/service/tour/%s" .ind }} hx-target="body">
+    <form hx-put={{printf "/service/tour/%s" .ind }} hx-confirm="Are you sure?" hx-target="body">
         <label for="begin">Start time: {{.start}}</label>
         <input type="datetime-local" id="begin" name="begin">
         <label for="end">End time: {{.end}}</label>
         <input type="datetime-local" id="end" name="end">
         <br>
-        <button type="submit" hx-confirm="Are you sure?">Update time range</button>
+        <button type="submit">Update time range</button>
     </form> <!-- TODO timezone | only normal way I see is to set it in user settings -->
 
     <div>

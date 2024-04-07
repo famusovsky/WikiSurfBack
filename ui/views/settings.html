@@ -5,14 +5,14 @@
         Settings
     </h2>
 
-    <form hx-put=/service/user hx-target="body">
+    <form hx-put=/service/user hx-confirm="Are you sure?" hx-target="body">
         <label for="name">Username</label>
         <input type="text" id="name" name="name" placeholder={{.name}}>
         <label for="email">Email</label>
         <input type="text" id="email" name="email" placeholder={{.email}}>
         <label for="password">Password</label>
         <input type="password" id="password" name="password">
-        <button type="submit" hx-confirm="Are you sure?">Update your settings</button>
+        <button type="submit">Update your settings</button>
         <br>
     </form>
 
