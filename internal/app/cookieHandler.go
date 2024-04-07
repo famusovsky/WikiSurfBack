@@ -39,7 +39,7 @@ func (c *cookieHandler) Set(ctx *fiber.Ctx, email string) {
 			Secure:  true,
 			Expires: now.Add(7 * 24 * time.Hour),
 		}
-		ctx.Cookie(cookie) // Probably fixed
+		ctx.Cookie(cookie)
 	}
 }
 

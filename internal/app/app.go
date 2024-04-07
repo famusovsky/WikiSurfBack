@@ -60,7 +60,7 @@ func CreateApp(db postgres.DbHandler, infoLog, errLog *log.Logger) *App {
 //
 // Принимает: адрес.
 func (app *App) Run(addr string) {
-	go app.errLog.Fatalln(app.web.Listen(addr))
+	app.errLog.Fatalln(app.web.Listen(addr))
 }
 
 // Shutdown - изящное отключение сервера.

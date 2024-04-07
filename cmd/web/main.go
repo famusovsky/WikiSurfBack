@@ -57,7 +57,7 @@ func main() {
 		}
 	})
 
-	app.Run(*addr)
+	go app.Run(*addr)
 
 	if err := eg.Wait(); err != nil {
 		infoLog.Printf("gracefully shutting down the server: %v\n", err)
